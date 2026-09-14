@@ -58,6 +58,21 @@
   .check.check-pop { animation: checkPop 0.32s ease; }
   @keyframes checkPop { 0% { transform: scale(1); } 45% { transform: scale(1.3); } 100% { transform: scale(1); } }
   .check-sm { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #C7BEDD; background: transparent; cursor: pointer; flex-shrink: 0; padding: 0; display:flex; align-items:center; justify-content:center; transition: background 0.2s ease, border-color 0.2s ease; }
+  /* calendar view (drawer > Calendar): tasks grouped by date, ordered by time */
+  .cal-view { padding: 4px 0 8px; }
+  .cal-day-group { margin-bottom: 18px; }
+  .cal-day-header { font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; color: #2E2A45; padding: 0 4px 8px; border-bottom: 1px solid #EDE6F7; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .cal-day-header.today { color: #7C6BC4; }
+  .cal-day-header.past { color: #A99FC2; font-weight: 400; }
+  .cal-today-badge { font-size: 10px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: #7C6BC4; background: #F1ECFB; border-radius: 999px; padding: 2px 8px; }
+  .cal-holiday-badge { font-size: 10px; font-weight: 500; color: #C2607A; background: #FBECF0; border-radius: 999px; padding: 2px 8px; }
+  .cal-task-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid #F6F2FC; }
+  .cal-task-row:last-child { border-bottom: none; }
+  .cal-task-time { flex: 0 0 74px; font-size: 12px; font-variant-numeric: tabular-nums; color: #7C6BC4; font-weight: 500; }
+  .cal-task-time.muted { color: #C7BEDD; font-weight: 400; }
+  .cal-task-text { flex: 1 1 auto; font-size: 14px; font-weight: 300; color: #2E2A45; min-width: 0; overflow-wrap: anywhere; }
+  .cal-task-text.done { color: #A99FC2; text-decoration: line-through; }
+  @media (max-width: 420px) { .cal-task-time { flex-basis: 62px; font-size: 11px; } }
   .check-sm.done { border-color: #9B8AE0; background: #9B8AE0; }
   .task-text { flex: 1; min-width: 0; cursor: pointer; font-size: 16px; font-weight: 300; transition: color 0.2s ease; }
   .task-text.done { color: #B3A9C9; text-decoration: line-through; }
@@ -245,7 +260,7 @@ const EN = {
   reflectTitle: "This week", reflectCompleted: "completed", reflectBestStreak: "Best habit streak", reflectNoData: "Nothing completed yet this week.",
   savedLocally: "Saved on this device",
   greetMorning: "Good morning", greetAfternoon: "Good afternoon", greetEvening: "Good evening",
-  pickDate: "Pick a date", autoDetected: "auto", clearDate: "Clear date", suggestDate: "This looks time-sensitive — add a date?", timeLabel: "Time",
+  pickDate: "Pick a date", autoDetected: "auto", clearDate: "Clear date", suggestDate: "This looks time-sensitive — add a date?", timeLabel: "Time", calendarEmpty: "Nothing scheduled yet — add a date to a task and it shows up here.", todayBadge: "Today",
 };
 const OVERRIDES = {
   es: { title: "Lista de hoy", loading: "Cargando…", allDone: "Todo listo.", nothingYet: "No tienes nada pendiente.", itemsLeft: "{n} pendientes", tabList: "Lista", tabCalendar: "Calendario", tabMatrix: "Matriz", tabHabits: "Hábitos", tabFocus: "Enfoque", tabReflect: "Repaso", settingsTitle: "Funciones opcionales", languageLabel: "Idioma", featMatrixLabel: "Vista Matriz de Eisenhower", featMatrixDesc: "Ordena tareas por urgente vs. importante", featHabitsLabel: "Seguimiento de hábitos", featHabitsDesc: "Rastrea hábitos diarios con rachas", featPomodoroLabel: "Temporizador de enfoque", featPomodoroDesc: "Temporizador de trabajo/descanso para cualquier tarea", featReflectLabel: "Repaso semanal", featReflectDesc: "Un vistazo a lo que lograste esta semana", addPlaceholder: "Agregar algo por hacer…", addBtn: "Agregar", hideDetails: "Ocultar detalles", showDetails: "+ fecha, categoría, prioridad", categoryPlaceholder: "Categoría", priorityPlaceholder: "Prioridad", low: "Baja", medium: "Media", high: "Alta", clearCompleted: "Borrar completadas", emptyAddFirst: "Agrega tu primera tarea arriba.", holidayTag: "Feriado KR", notesPlaceholder: "Notas…", subtaskPlaceholder: "Agregar subtarea…", matrixDo: "Hacer primero", matrixDoDesc: "Urgente e importante", matrixSchedule: "Planificar", matrixScheduleDesc: "Importante, no urgente", matrixDelegate: "Delegar / rápido", matrixDelegateDesc: "Urgente, baja prioridad", matrixLater: "Más tarde", matrixLaterDesc: "Ni urgente ni crítico", matrixEmpty: "Nada aquí", habitPlaceholder: "Agregar un hábito…", habitEmpty: "Aún no hay hábitos — agrega uno arriba.", streakDay: "🔥 {n} días seguidos", noStreak: "Sin racha aún", freezeUsed: "❄️ congelación usada", focusNoTask: "Ninguna tarea seleccionada", focusLabel: "ENFOQUE", breakLabel: "DESCANSO", start: "Iniciar", pause: "Pausar", reset: "Reiniciar", reflectTitle: "Esta semana", reflectCompleted: "completadas", reflectBestStreak: "Mejor racha", reflectNoData: "Nada completado esta semana.", savedLocally: "Guardado en este dispositivo" },
@@ -429,6 +444,7 @@ function addItem() {
   }, ...state.items]);
   state.draftDue = ""; state.draftDueAuto = false; state.calendarOpen = false; state.draftInputText = ""; state.draftTime = "";
   state.draftCategoryText = ""; state.draftPriority = null; state.draftSuggestDate = false;
+  render();
 }
 function setDraftTime(val) { state.draftTime = val; render(); }
 function onDraftInput(text) {
