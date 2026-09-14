@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nudge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; background: #FAF8FC; }
+  body { font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-weight: 300; color: #3B3550; }
+  #page { position: relative; min-height: 100vh; overflow: hidden; }
+  #bgImage { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 30vh; object-fit: cover; opacity: 0.55; pointer-events: none; z-index: 0; transition: opacity 0.4s ease; }
+  #bgCaption { position: absolute; left: 20px; bottom: 10px; z-index: 1; font-size: 11px; font-weight: 400; color: #2E2A45; background: rgba(250,248,252,0.75); padding: 3px 9px; border-radius: 999px; }
+  #inner { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 48px 20px; }
+  .greeting { margin: 0 0 2px; font-size: 13px; font-weight: 400; color: #8A81A3; }
+  h1 { font-size: 28px; font-weight: 500; margin: 0; letter-spacing: -0.01em; color: #2E2A45; font-family: 'Lexend', sans-serif; }
+  .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .subtitle { margin: 6px 0 0; font-size: 14px; font-weight: 300; color: #8A81A3; }
+  .subtitle b { font-weight: 600; color: #2E2A45; }
+  .gear-btn { border: 1px solid #E4DCF2; background: #FFFFFF; border-radius: 10px; width: 40px; height: 40px; cursor: pointer; font-size: 17px; transition: background 0.15s ease, transform 0.15s ease; }
+  .gear-btn:active { transform: scale(0.94); }
+  .tab-row { display: flex; gap: 6px; margin-top: 16px; flex-wrap: wrap; }
+  #hamburgerBtn { position: fixed; top: 24px; left: 24px; z-index: 25; width: 44px; height: 44px; border-radius: 10px; border: 1px solid #E4DCF2; background: #FFFFFF; color: #2E2A45; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease, background 0.15s ease; }
+  #hamburgerBtn:active { transform: scale(0.94); }
+  #sidebarOverlay { position: fixed; inset: 0; background: rgba(46,42,69,0.25); z-index: 29; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+  #sidebarOverlay.open { opacity: 1; pointer-events: auto; }
+  #sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 250px; max-width: 80vw; background: #FFFFFF; z-index: 30; padding: 20px 14px; box-shadow: 4px 0 24px rgba(46,42,69,0.14); transform: translateX(-100%); transition: transform 0.25s ease; display: flex; flex-direction: column; overflow-y: auto; }
+  #sidebar.open { transform: translateX(0); }
+  .sidebar-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding: 0 6px; }
+  .sidebar-title { font-size: 16px; font-weight: 500; color: #2E2A45; font-family: 'Lexend', sans-serif; }
+  .sidebar-close { border: none; background: transparent; color: #8A81A3; font-size: 22px; line-height: 1; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav-item { text-align: left; border: none; background: transparent; color: #3B3550; font-size: 14px; font-weight: 400; padding: 11px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+  .nav-item.active { background: #F1ECFA; color: #7A5FD1; font-weight: 500; }
+  .sidebar-settings { margin-top: auto; padding-top: 14px; border-top: 1px solid #EDE6F7; color: #8A81A3; }
+  .tab { border: 1px solid #E4DCF2; background: #FFFFFF; color: #8A81A3; font-size: 12px; font-weight: 500; padding: 7px 13px; border-radius: 999px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+  .tab.active { background: #9B8AE0; border-color: #9B8AE0; color: #FFFFFF; font-weight: 600; }
+  .settings-panel { background: #FFFFFF; border: 1px solid #EDE6F7; border-radius: 10px; padding: 14px; margin-top: 16px; }
+  .setting-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; cursor: pointer; }
+  .setting-row .label { font-size: 14px; font-weight: 500; }
+  .setting-row .desc { font-size: 12px; font-weight: 300; color: #8A81A3; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0; }
+  .chip { border: 1px solid #E4DCF2; background: #FFFFFF; color: #8A81A3; font-size: 12px; font-weight: 500; padding: 6px 13px; border-radius: 999px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+  .chip.active { background: #9B8AE0; border-color: #9B8AE0; color: #FFFFFF; font-weight: 600; }
+  input[type=text], input[type=date], select, textarea { flex: 1; font-size: 15px; font-weight: 300; font-family: inherit; padding: 12px 14px; border-radius: 8px; border: 1px solid #E4DCF2; background: #FFFFFF; outline: none; color: #3B3550; width: 100%; transition: border-color 0.15s ease; }
+  .btn-primary { padding: 12px 18px; border-radius: 8px; border: none; background: #9B8AE0; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: transform 0.15s ease, background 0.15s ease; }
+  .btn-primary:active { transform: scale(0.96); }
+  .btn-secondary { background: #F1ECFA; color: #8A81A3; }
+  .details-toggle { border: none; background: transparent; color: #8A81A3; font-size: 12px; font-weight: 300; cursor: pointer; padding: 6px 2px; text-decoration: underline; }
+  .empty { padding: 32px 0; text-align: center; color: #A99FC2; font-size: 14px; font-weight: 300; }
+  .row { padding: 14px 4px; border-bottom: 1px solid #EDE6F7; }
+  .row-flex { display: flex; align-items: flex-start; gap: 12px; }
+  .check { width: 26px; height: 26px; margin-top: -1px; border-radius: 50%; border: 1.5px solid #C7BEDD; background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease; }
+  .check.done { border-color: #9B8AE0; background: #9B8AE0; }
+  .check.check-pop { animation: checkPop 0.32s ease; }
+  @keyframes checkPop { 0% { transform: scale(1); } 45% { transform: scale(1.3); } 100% { transform: scale(1); } }
+  .check-sm { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #C7BEDD; background: transparent; cursor: pointer; flex-shrink: 0; padding: 0; display:flex; align-items:center; justify-content:center; transition: background 0.2s ease, border-color 0.2s ease; }
+  .check-sm.done { border-color: #9B8AE0; background: #9B8AE0; }
+  .task-text { flex: 1; min-width: 0; cursor: pointer; font-size: 16px; font-weight: 300; transition: color 0.2s ease; }
+  .task-text.done { color: #B3A9C9; text-decoration: line-through; }
+  .tag-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .tag { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px; background: #F1ECFA; color: #8A81A3; }
+  .tag.overdue { background: #FBE4E0; color: #C2665A; }
+  .tag.today { background: #E3F3E8; color: #4FA871; }
+  .priority-dot { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; }
+  .priority-dot i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .delete-btn { border: none; background: transparent; cursor: pointer; color: #C7BEDD; font-size: 20px; line-height: 1; padding: 8px; border-radius: 6px; transition: color 0.15s ease, background 0.15s ease; }
+  .delete-btn:hover { color: #C2665A; background: #FBE4E0; }
+  .expand-panel { margin-left: 32px; padding-left: 4px; border-left: 2px solid transparent; max-height: 0; opacity: 0; overflow: hidden; pointer-events: none; transition: max-height 0.28s ease, opacity 0.22s ease, margin-top 0.28s ease; }
+  .expand-panel.open { max-height: 600px; opacity: 1; margin-top: 8px; border-left-color: #EDE6F7; pointer-events: auto; }
+  .sub-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+  .clear-link { margin-top: 20px; border: none; background: transparent; color: #8A81A3; font-size: 13px; font-weight: 300; cursor: pointer; text-decoration: underline; padding: 0; }
+  .matrix-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .matrix-cell { background: #FFFFFF; border: 1px solid #EDE6F7; border-radius: 10px; padding: 12px; min-height: 120px; }
+  .matrix-cell .title { font-size: 13px; font-weight: 600; color: #2E2A45; }
+  .matrix-cell .desc { font-size: 11px; font-weight: 300; color: #8A81A3; margin-bottom: 8px; }
+  .matrix-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; font-weight: 300; }
+  .sync-text { margin: 3px 0 0; font-size: 11px; font-weight: 300; color: #A99FC2; }
+  .add-row { display: flex; gap: 8px; }
+  .date-btn { display: flex; align-items: center; gap: 6px; border: 1px solid #E4DCF2; background: #FFFFFF; color: #8A81A3; border-radius: 8px; padding: 0 14px; height: 44px; cursor: pointer; font-size: 13px; font-weight: 400; white-space: nowrap; transition: border-color 0.15s ease, color 0.15s ease; }
+  .date-btn.has-value { border-color: #9B8AE0; color: #7A5FD1; font-weight: 500; }
+  .date-btn.suggest { border-color: #F0A85E; color: #B8791E; animation: suggestPulse 1.6s ease-in-out infinite; }
+  @keyframes suggestPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(240,168,94,0.45); } 50% { box-shadow: 0 0 0 5px rgba(240,168,94,0); } }
+  .suggest-hint { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; background: #FFFFFF; border: 1px solid #F0A85E; color: #B8791E; font-size: 11px; font-weight: 400; padding: 6px 10px; border-radius: 8px; width: 190px; box-shadow: 0 4px 12px rgba(46,42,69,0.1); }
+  .date-btn em { font-style: normal; font-size: 10px; color: #A99FC2; margin-left: 2px; }
+  .cal-popup { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; background: #FFFFFF; border: 1px solid #E4DCF2; border-radius: 12px; padding: 12px; width: 260px; box-shadow: 0 8px 24px rgba(46,42,69,0.12); }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .cal-nav-btn { border: none; background: #F1ECFA; color: #7A5FD1; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 16px; }
+  .cal-month-label { font-size: 13px; font-weight: 500; color: #2E2A45; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-weekdays { margin-bottom: 2px; }
+  .cal-weekday { text-align: center; font-size: 10px; font-weight: 500; color: #A99FC2; padding: 4px 0; }
+  .cal-cell { border: none; background: transparent; color: #3B3550; font-size: 12px; font-weight: 300; height: 30px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease; }
+  .cal-cell:hover:not(.empty) { background: #F1ECFA; }
+  .cal-cell.today { font-weight: 600; color: #7A5FD1; }
+  .cal-cell.selected { background: #9B8AE0; color: #FFFFFF; font-weight: 500; }
+  .cal-cell.empty { cursor: default; }
+  .cal-clear { width: 100%; margin-top: 8px; border: none; background: transparent; color: #C2665A; font-size: 12px; font-weight: 400; cursor: pointer; padding: 6px 0; text-align: center; }
+  .cal-time-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #EDE6F7; }
+  .cal-time-row label { font-size: 12px; color: #8A81A3; }
+  .cal-time-input { flex: 1; padding: 6px 8px; font-size: 13px; }
+  .details-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; margin-bottom: 8px; }
+  .quick-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+  .priority-picker { display: flex; gap: 4px; }
+  .priority-pick { display: flex; align-items: center; gap: 5px; border: 1px solid #E4DCF2; background: #FFFFFF; color: #8A81A3; font-size: 12px; font-weight: 400; padding: 8px 11px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+  .priority-pick.active { color: #FFFFFF; font-weight: 500; }
+  .priority-pick i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .notes-area { min-height: 50px; font-size: 13px; padding: 8px 10px; resize: vertical; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 110px; margin-bottom: 16px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar-fill { width: 100%; background: #9B8AE0; border-radius: 4px; transition: height 0.3s ease; }
+  .timer-display { text-align: center; padding: 20px 0; }
+  .timer-num { font-size: 54px; font-weight: 500; font-variant-numeric: tabular-nums; color: #2E2A45; margin-bottom: 20px; }
+  .boot-error { white-space: pre-wrap; color: #9A4B3A; background: #FBE4E0; padding: 20px; margin: 20px; border-radius: 8px; font-family: monospace; font-size: 13px; }
+  a, button, input, select, textarea, [tabindex] { }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid #9B8AE0; outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+"use strict";
+
+function showBootError(label, err) {
+  const msg = (err && err.stack) ? err.stack : (err && err.message) ? err.message : String(err);
+  const pre = document.createElement("pre");
+  pre.className = "boot-error";
+  pre.textContent = label + ":\n" + msg;
+  document.body.prepend(pre);
+}
+window.addEventListener("error", (e) => showBootError("Runtime error", e.error || e.message));
+window.addEventListener("unhandledrejection", (e) => showBootError("Unhandled promise rejection", e.reason));
+
+// Startup errors are still caught by the window listeners above, so this no longer needs its
+// own try/catch — that wrapper was the actual bug: in strict mode, function declarations
+// inside a block (a try{} block included) are scoped to that block, so none of the functions
+// below were reachable from the global scope your onclick="..." handlers run in.
+
+// ---------- constants ----------
+const ITEMS_KEY = "todo:items:v3";
+const HABITS_KEY = "todo:habits:v1";
+const SETTINGS_KEY = "todo:settings:v3";
+
+const PRIORITIES = [
+  { id: "low", key: "low", color: "#6FBF8F" },
+  { id: "medium", key: "medium", color: "#F0A85E" },
+  { id: "high", key: "high", color: "#E8836F" },
+];
+const LANGS = [
+  { code: "en", name: "English" }, { code: "es", name: "Español" }, { code: "pt", name: "Português" },
+  { code: "fr", name: "Français" }, { code: "de", name: "Deutsch" }, { code: "it", name: "Italiano" },
+  { code: "ru", name: "Русский" }, { code: "ja", name: "日本語" }, { code: "ko", name: "한국어" },
+  { code: "zh", name: "中文" }, { code: "ar", name: "العربية" }, { code: "hi", name: "हिन्दी" },
+  { code: "tr", name: "Türkçe" }, { code: "nl", name: "Nederlands" }, { code: "id", name: "Bahasa Indonesia" },
+];
+const RTL_LANGS = new Set(["ar"]);
+
+const KOREAN_HOLIDAYS = new Set([
+  "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-05-05",
+  "2026-05-24", "2026-06-06", "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26",
+  "2026-10-03", "2026-10-09", "2026-12-25",
+]);
+
+// Real, verified photos (Unsplash License) — used instantly, before any network call resolves.
+const FALLBACK_IMAGES = [
+  { url: "https://images.unsplash.com/photo-1652172175826-4d769c1ffcec?w=1600&q=80&auto=format&fit=crop", place: "Namsan Tower, Seoul" },
+  { url: "https://images.unsplash.com/photo-1646906975349-eebfad38ee3b?w=1600&q=80&auto=format&fit=crop", place: "Han River, Seoul" },
+  { url: "https://images.unsplash.com/photo-1721999591032-a8b3845c9564?w=1600&q=80&auto=format&fit=crop", place: "Seoraksan National Park" },
+  { url: "https://images.unsplash.com/photo-1677097607726-480ca3bfd528?w=1600&q=80&auto=format&fit=crop", place: "Ulsanbawi, Seoraksan" },
+];
+function dailyLandscapeUrl() { return FALLBACK_IMAGES[dayOfYear() % FALLBACK_IMAGES.length]; }
+
+// Country each language maps to, for pulling a real photo of the relevant place.
+const COUNTRY_BY_LANG = {
+  en: "United States", es: "Spain", pt: "Brazil", fr: "France", de: "Germany", it: "Italy",
+  ru: "Russia", ja: "Japan", ko: "South Korea", zh: "China", ar: "United Arab Emirates",
+  hi: "India", tr: "Turkey", nl: "Netherlands", id: "Indonesia",
+};
+
+// Live upgrade over the fallback above: pulls a real photo of the relevant country from
+// Wikimedia Commons (no API key, CC/public-domain licensed). This runs fine in a normal
+// browser on a real deployed site — it only fails inside Claude's own sandboxed preview panes,
+// which is why the fallback exists: so the page is never blank while this resolves (or if it
+// never can, in a restricted preview).
+async function fetchDailyLandscape(lang) {
+  const country = COUNTRY_BY_LANG[lang] || "South Korea";
+  const cacheKey = "todo:landscape:" + lang;
+  const cached = loadJSON(cacheKey, null);
+  if (cached && cached.day === dayOfYear()) return cached.result;
+
+  const query = encodeURIComponent(country + " scenic landscape");
+  const url = "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=" + query +
+    "&gsrnamespace=6&gsrlimit=20&prop=imageinfo&iiprop=url&iiurlwidth=1600&format=json&origin=*";
+  const res = await fetch(url);
+  const data = await res.json();
+  const pages = Object.values((data.query && data.query.pages) || {});
+  const photos = pages.map((p) => p.imageinfo && p.imageinfo[0]).filter((ii) => ii && /\.(jpe?g|png)$/i.test(ii.url || ""));
+  if (photos.length === 0) return null;
+  const pick = photos[dayOfYear() % photos.length];
+  const result = { url: pick.thumburl || pick.url, place: country };
+  saveJSON(cacheKey, { day: dayOfYear(), result });
+  return result;
+}
+function refreshLandscape() {
+  fetchDailyLandscape(state.settings.lang)
+    .then((result) => { if (result) { state.landscapeUrl = result; render(); } })
+    .catch(() => {}); // sandbox/network restrictions: keep showing the fallback
+}
+function dayOfYear() {
+  const start = new Date(new Date().getFullYear(), 0, 0);
+  return Math.floor((new Date() - start) / 86400000);
+}
+function dayKey(d) { return new Date(d).toISOString().slice(0, 10); }
+function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+
+// ---------- translations ----------
+const EN = {
+  title: "Today's list", loading: "Loading…", allDone: "All done.", nothingYet: "Nothing on your plate yet.",
+  itemsLeft: "{n} left", tabList: "List", tabMatrix: "Matrix", tabHabits: "Habits", tabFocus: "Focus", tabReflect: "Reflect",
+  settingsTitle: "Optional features", languageLabel: "Language",
+  featMatrixLabel: "Eisenhower Matrix view", featMatrixDesc: "See tasks sorted by urgent vs. important",
+  featHabitsLabel: "Habit tracker", featHabitsDesc: "Track daily habits with streaks, separate from tasks",
+  featPomodoroLabel: "Focus timer", featPomodoroDesc: "A simple work/break timer you can point at any task",
+  featReflectLabel: "Weekly reflection", featReflectDesc: "A quiet look back at what got done this week",
+  addPlaceholder: "Add something to do…", addBtn: "Add", hideDetails: "Hide details",
+  showDetails: "+ due date, category, priority", categoryPlaceholder: "Category", priorityPlaceholder: "Priority",
+  low: "Low", medium: "Medium", high: "High", clearCompleted: "Clear completed",
+  emptyAddFirst: "Add your first task above.", holidayTag: "KR holiday",
+  notesPlaceholder: "Notes…", subtaskPlaceholder: "Add subtask…",
+  matrixDo: "Do first", matrixDoDesc: "Urgent & high priority", matrixSchedule: "Schedule", matrixScheduleDesc: "Important, not urgent",
+  matrixDelegate: "Delegate / quick wins", matrixDelegateDesc: "Urgent, lower priority", matrixLater: "Later",
+  matrixLaterDesc: "Not urgent, not critical", matrixEmpty: "Nothing here",
+  habitPlaceholder: "Add a habit…", habitEmpty: "No habits yet — add one above.",
+  streakDay: "🔥 {n} day streak", noStreak: "No streak yet", freezeUsed: "❄️ freeze used to save this streak",
+  focusNoTask: "No task selected", focusLabel: "FOCUS", breakLabel: "BREAK", start: "Start", pause: "Pause", reset: "Reset",
+  reflectTitle: "This week", reflectCompleted: "completed", reflectBestStreak: "Best habit streak", reflectNoData: "Nothing completed yet this week.",
+  savedLocally: "Saved on this device",
+  greetMorning: "Good morning", greetAfternoon: "Good afternoon", greetEvening: "Good evening",
+  pickDate: "Pick a date", autoDetected: "auto", clearDate: "Clear date", suggestDate: "This looks time-sensitive — add a date?", timeLabel: "Time",
+};
+const OVERRIDES = {
+  es: { title: "Lista de hoy", loading: "Cargando…", allDone: "Todo listo.", nothingYet: "No tienes nada pendiente.", itemsLeft: "{n} pendientes", tabList: "Lista", tabMatrix: "Matriz", tabHabits: "Hábitos", tabFocus: "Enfoque", tabReflect: "Repaso", settingsTitle: "Funciones opcionales", languageLabel: "Idioma", featMatrixLabel: "Vista Matriz de Eisenhower", featMatrixDesc: "Ordena tareas por urgente vs. importante", featHabitsLabel: "Seguimiento de hábitos", featHabitsDesc: "Rastrea hábitos diarios con rachas", featPomodoroLabel: "Temporizador de enfoque", featPomodoroDesc: "Temporizador de trabajo/descanso para cualquier tarea", featReflectLabel: "Repaso semanal", featReflectDesc: "Un vistazo a lo que lograste esta semana", addPlaceholder: "Agregar algo por hacer…", addBtn: "Agregar", hideDetails: "Ocultar detalles", showDetails: "+ fecha, categoría, prioridad", categoryPlaceholder: "Categoría", priorityPlaceholder: "Prioridad", low: "Baja", medium: "Media", high: "Alta", clearCompleted: "Borrar completadas", emptyAddFirst: "Agrega tu primera tarea arriba.", holidayTag: "Feriado KR", notesPlaceholder: "Notas…", subtaskPlaceholder: "Agregar subtarea…", matrixDo: "Hacer primero", matrixDoDesc: "Urgente e importante", matrixSchedule: "Planificar", matrixScheduleDesc: "Importante, no urgente", matrixDelegate: "Delegar / rápido", matrixDelegateDesc: "Urgente, baja prioridad", matrixLater: "Más tarde", matrixLaterDesc: "Ni urgente ni crítico", matrixEmpty: "Nada aquí", habitPlaceholder: "Agregar un hábito…", habitEmpty: "Aún no hay hábitos — agrega uno arriba.", streakDay: "🔥 {n} días seguidos", noStreak: "Sin racha aún", freezeUsed: "❄️ congelación usada", focusNoTask: "Ninguna tarea seleccionada", focusLabel: "ENFOQUE", breakLabel: "DESCANSO", start: "Iniciar", pause: "Pausar", reset: "Reiniciar", reflectTitle: "Esta semana", reflectCompleted: "completadas", reflectBestStreak: "Mejor racha", reflectNoData: "Nada completado esta semana.", savedLocally: "Guardado en este dispositivo" },
+  pt: { title: "Lista de hoje", loading: "Carregando…", allDone: "Tudo feito.", nothingYet: "Nada pendente por aqui.", itemsLeft: "{n} restantes", tabList: "Lista", tabMatrix: "Matriz", tabHabits: "Hábitos", tabFocus: "Foco", tabReflect: "Reflexão", settingsTitle: "Recursos opcionais", languageLabel: "Idioma", featMatrixLabel: "Matriz de Eisenhower", featMatrixDesc: "Veja tarefas por urgente vs. importante", featHabitsLabel: "Rastreador de hábitos", featHabitsDesc: "Acompanhe hábitos diários com sequências", featPomodoroLabel: "Temporizador de foco", featPomodoroDesc: "Temporizador de trabalho/pausa", featReflectLabel: "Reflexão semanal", featReflectDesc: "Um resumo do que foi feito essa semana", addPlaceholder: "Adicionar tarefa…", addBtn: "Adicionar", hideDetails: "Ocultar detalhes", showDetails: "+ data, categoria, prioridade", categoryPlaceholder: "Categoria", priorityPlaceholder: "Prioridade", low: "Baixa", medium: "Média", high: "Alta", clearCompleted: "Limpar concluídas", emptyAddFirst: "Adicione sua primeira tarefa acima.", holidayTag: "Feriado KR", notesPlaceholder: "Notas…", subtaskPlaceholder: "Adicionar subtarefa…", matrixDo: "Fazer primeiro", matrixDoDesc: "Urgente e importante", matrixSchedule: "Agendar", matrixScheduleDesc: "Importante, não urgente", matrixDelegate: "Delegar / rápido", matrixDelegateDesc: "Urgente, baixa prioridade", matrixLater: "Depois", matrixLaterDesc: "Nem urgente nem crítico", matrixEmpty: "Nada aqui", habitPlaceholder: "Adicionar hábito…", habitEmpty: "Nenhum hábito ainda.", streakDay: "🔥 {n} dias seguidos", noStreak: "Sem sequência ainda", freezeUsed: "❄️ congelamento usado", focusNoTask: "Nenhuma tarefa selecionada", focusLabel: "FOCO", breakLabel: "PAUSA", start: "Iniciar", pause: "Pausar", reset: "Reiniciar", reflectTitle: "Esta semana", reflectCompleted: "concluídas", reflectBestStreak: "Melhor sequência", reflectNoData: "Nada concluído esta semana.", savedLocally: "Salvo neste dispositivo" },
+  fr: { title: "Liste du jour", loading: "Chargement…", allDone: "Tout est fait.", nothingYet: "Rien pour l'instant.", itemsLeft: "{n} restantes", tabList: "Liste", tabMatrix: "Matrice", tabHabits: "Habitudes", tabFocus: "Focus", tabReflect: "Bilan", settingsTitle: "Fonctions optionnelles", languageLabel: "Langue", featMatrixLabel: "Vue Matrice d'Eisenhower", featMatrixDesc: "Trier par urgent vs. important", featHabitsLabel: "Suivi des habitudes", featHabitsDesc: "Suivez vos habitudes avec des séries", featPomodoroLabel: "Minuteur de concentration", featPomodoroDesc: "Minuteur travail/pause", featReflectLabel: "Bilan hebdomadaire", featReflectDesc: "Un aperçu de la semaine", addPlaceholder: "Ajouter une tâche…", addBtn: "Ajouter", hideDetails: "Masquer les détails", showDetails: "+ date, catégorie, priorité", categoryPlaceholder: "Catégorie", priorityPlaceholder: "Priorité", low: "Faible", medium: "Moyenne", high: "Haute", clearCompleted: "Effacer terminées", emptyAddFirst: "Ajoutez votre première tâche.", holidayTag: "Férié KR", notesPlaceholder: "Notes…", subtaskPlaceholder: "Ajouter une sous-tâche…", matrixDo: "À faire en premier", matrixDoDesc: "Urgent et important", matrixSchedule: "Planifier", matrixScheduleDesc: "Important, pas urgent", matrixDelegate: "Déléguer / rapide", matrixDelegateDesc: "Urgent, priorité basse", matrixLater: "Plus tard", matrixLaterDesc: "Ni urgent ni critique", matrixEmpty: "Rien ici", habitPlaceholder: "Ajouter une habitude…", habitEmpty: "Aucune habitude.", streakDay: "🔥 {n} jours de suite", noStreak: "Pas encore de série", freezeUsed: "❄️ gel utilisé", focusNoTask: "Aucune tâche sélectionnée", focusLabel: "FOCUS", breakLabel: "PAUSE", start: "Démarrer", pause: "Pause", reset: "Réinitialiser", reflectTitle: "Cette semaine", reflectCompleted: "terminées", reflectBestStreak: "Meilleure série", reflectNoData: "Rien terminé cette semaine.", savedLocally: "Enregistré sur cet appareil" },
+  de: { title: "Heutige Liste", loading: "Lädt…", allDone: "Alles erledigt.", nothingYet: "Noch nichts zu tun.", itemsLeft: "{n} übrig", tabList: "Liste", tabMatrix: "Matrix", tabHabits: "Gewohnheiten", tabFocus: "Fokus", tabReflect: "Rückblick", settingsTitle: "Optionale Funktionen", languageLabel: "Sprache", featMatrixLabel: "Eisenhower-Matrix", featMatrixDesc: "Aufgaben nach dringend vs. wichtig", featHabitsLabel: "Gewohnheits-Tracker", featHabitsDesc: "Gewohnheiten mit Streaks verfolgen", featPomodoroLabel: "Fokus-Timer", featPomodoroDesc: "Arbeits-/Pausen-Timer", featReflectLabel: "Wochenrückblick", featReflectDesc: "Ein Blick auf diese Woche", addPlaceholder: "Aufgabe hinzufügen…", addBtn: "Hinzufügen", hideDetails: "Details ausblenden", showDetails: "+ Datum, Kategorie, Priorität", categoryPlaceholder: "Kategorie", priorityPlaceholder: "Priorität", low: "Niedrig", medium: "Mittel", high: "Hoch", clearCompleted: "Erledigte löschen", emptyAddFirst: "Füge deine erste Aufgabe hinzu.", holidayTag: "KR-Feiertag", notesPlaceholder: "Notizen…", subtaskPlaceholder: "Unteraufgabe hinzufügen…", matrixDo: "Zuerst erledigen", matrixDoDesc: "Dringend & wichtig", matrixSchedule: "Einplanen", matrixScheduleDesc: "Wichtig, nicht dringend", matrixDelegate: "Delegieren / schnell", matrixDelegateDesc: "Dringend, niedrige Priorität", matrixLater: "Später", matrixLaterDesc: "Weder dringend noch kritisch", matrixEmpty: "Nichts hier", habitPlaceholder: "Gewohnheit hinzufügen…", habitEmpty: "Noch keine Gewohnheiten.", streakDay: "🔥 {n} Tage in Folge", noStreak: "Noch keine Serie", freezeUsed: "❄️ Einfrierung genutzt", focusNoTask: "Keine Aufgabe ausgewählt", focusLabel: "FOKUS", breakLabel: "PAUSE", start: "Start", pause: "Pause", reset: "Zurücksetzen", reflectTitle: "Diese Woche", reflectCompleted: "erledigt", reflectBestStreak: "Beste Serie", reflectNoData: "Diese Woche noch nichts erledigt.", savedLocally: "Auf diesem Gerät gespeichert" },
+  it: { title: "Lista di oggi", loading: "Caricamento…", allDone: "Tutto fatto.", nothingYet: "Ancora niente.", itemsLeft: "{n} rimanenti", tabList: "Lista", tabMatrix: "Matrice", tabHabits: "Abitudini", tabFocus: "Focus", tabReflect: "Riepilogo", settingsTitle: "Funzioni opzionali", languageLabel: "Lingua", featMatrixLabel: "Matrice di Eisenhower", featMatrixDesc: "Ordina per urgente vs. importante", featHabitsLabel: "Monitoraggio abitudini", featHabitsDesc: "Traccia abitudini con serie", featPomodoroLabel: "Timer di concentrazione", featPomodoroDesc: "Timer lavoro/pausa", featReflectLabel: "Riepilogo settimanale", featReflectDesc: "Uno sguardo a questa settimana", addPlaceholder: "Aggiungi un compito…", addBtn: "Aggiungi", hideDetails: "Nascondi dettagli", showDetails: "+ data, categoria, priorità", categoryPlaceholder: "Categoria", priorityPlaceholder: "Priorità", low: "Bassa", medium: "Media", high: "Alta", clearCompleted: "Rimuovi completate", emptyAddFirst: "Aggiungi il tuo primo compito.", holidayTag: "Festivo KR", notesPlaceholder: "Note…", subtaskPlaceholder: "Aggiungi sottoattività…", matrixDo: "Da fare subito", matrixDoDesc: "Urgente e importante", matrixSchedule: "Pianificare", matrixScheduleDesc: "Importante, non urgente", matrixDelegate: "Delegare / veloce", matrixDelegateDesc: "Urgente, priorità bassa", matrixLater: "Più tardi", matrixLaterDesc: "Né urgente né critico", matrixEmpty: "Niente qui", habitPlaceholder: "Aggiungi un'abitudine…", habitEmpty: "Ancora nessuna abitudine.", streakDay: "🔥 {n} giorni di fila", noStreak: "Ancora nessuna serie", freezeUsed: "❄️ blocco usato", focusNoTask: "Nessuna attività selezionata", focusLabel: "FOCUS", breakLabel: "PAUSA", start: "Avvia", pause: "Pausa", reset: "Reimposta", reflectTitle: "Questa settimana", reflectCompleted: "completate", reflectBestStreak: "Miglior serie", reflectNoData: "Niente completato questa settimana.", savedLocally: "Salvato su questo dispositivo" },
+  ru: { title: "Список на сегодня", loading: "Загрузка…", allDone: "Всё готово.", nothingYet: "Пока пусто.", itemsLeft: "осталось: {n}", tabList: "Список", tabMatrix: "Матрица", tabHabits: "Привычки", tabFocus: "Фокус", tabReflect: "Итоги", settingsTitle: "Доп. функции", languageLabel: "Язык", featMatrixLabel: "Матрица Эйзенхауэра", featMatrixDesc: "Сортировка по срочности и важности", featHabitsLabel: "Трекер привычек", featHabitsDesc: "Привычки со стриками", featPomodoroLabel: "Таймер фокуса", featPomodoroDesc: "Таймер работа/отдых", featReflectLabel: "Итоги недели", featReflectDesc: "Что сделано за неделю", addPlaceholder: "Добавить задачу…", addBtn: "Добавить", hideDetails: "Скрыть детали", showDetails: "+ срок, категория, приоритет", categoryPlaceholder: "Категория", priorityPlaceholder: "Приоритет", low: "Низкий", medium: "Средний", high: "Высокий", clearCompleted: "Очистить выполненные", emptyAddFirst: "Добавьте первую задачу.", holidayTag: "Праздник KR", notesPlaceholder: "Заметки…", subtaskPlaceholder: "Добавить подзадачу…", matrixDo: "Сделать сейчас", matrixDoDesc: "Срочно и важно", matrixSchedule: "Запланировать", matrixScheduleDesc: "Важно, не срочно", matrixDelegate: "Делегировать", matrixDelegateDesc: "Срочно, низкий приоритет", matrixLater: "Позже", matrixLaterDesc: "Не срочно и не критично", matrixEmpty: "Здесь пусто", habitPlaceholder: "Добавить привычку…", habitEmpty: "Пока нет привычек.", streakDay: "🔥 {n} дней подряд", noStreak: "Пока нет серии", freezeUsed: "❄️ заморозка использована", focusNoTask: "Задача не выбрана", focusLabel: "ФОКУС", breakLabel: "ОТДЫХ", start: "Старт", pause: "Пауза", reset: "Сброс", reflectTitle: "На этой неделе", reflectCompleted: "выполнено", reflectBestStreak: "Лучшая серия", reflectNoData: "На этой неделе ничего не выполнено.", savedLocally: "Сохранено на этом устройстве" },
+  ja: { title: "今日のリスト", loading: "読み込み中…", allDone: "すべて完了。", nothingYet: "予定はまだありません。", itemsLeft: "残り{n}件", tabList: "リスト", tabMatrix: "マトリクス", tabHabits: "習慣", tabFocus: "集中", tabReflect: "振り返り", settingsTitle: "オプション機能", languageLabel: "言語", featMatrixLabel: "アイゼンハワー・マトリクス", featMatrixDesc: "緊急度と重要度で表示", featHabitsLabel: "習慣トラッカー", featHabitsDesc: "連続記録で習慣を管理", featPomodoroLabel: "集中タイマー", featPomodoroDesc: "作業/休憩タイマー", featReflectLabel: "週次振り返り", featReflectDesc: "今週の振り返り", addPlaceholder: "タスクを追加…", addBtn: "追加", hideDetails: "詳細を隠す", showDetails: "+ 期限・カテゴリ・優先度", categoryPlaceholder: "カテゴリ", priorityPlaceholder: "優先度", low: "低", medium: "中", high: "高", clearCompleted: "完了済みを削除", emptyAddFirst: "上で最初のタスクを追加してください。", holidayTag: "韓国の祝日", notesPlaceholder: "メモ…", subtaskPlaceholder: "サブタスクを追加…", matrixDo: "すぐやる", matrixDoDesc: "緊急かつ重要", matrixSchedule: "計画する", matrixScheduleDesc: "重要だが緊急でない", matrixDelegate: "任せる／さっと片付ける", matrixDelegateDesc: "緊急だが優先度は低い", matrixLater: "後で", matrixLaterDesc: "緊急でも重要でもない", matrixEmpty: "ここには何もありません", habitPlaceholder: "習慣を追加…", habitEmpty: "習慣はまだありません。", streakDay: "🔥 {n}日連続", noStreak: "まだ記録なし", freezeUsed: "❄️ フリーズ使用", focusNoTask: "タスク未選択", focusLabel: "集中", breakLabel: "休憩", start: "開始", pause: "一時停止", reset: "リセット", reflectTitle: "今週", reflectCompleted: "完了", reflectBestStreak: "最長ストリーク", reflectNoData: "今週はまだ何も完了していません。", savedLocally: "この端末に保存済み" },
+  ko: { title: "오늘의 목록", loading: "불러오는 중…", allDone: "모두 완료했습니다.", nothingYet: "아직 할 일이 없습니다.", itemsLeft: "{n}개 남음", tabList: "목록", tabMatrix: "매트릭스", tabHabits: "습관", tabFocus: "집중", tabReflect: "돌아보기", settingsTitle: "선택 기능", languageLabel: "언어", featMatrixLabel: "아이젠하워 매트릭스", featMatrixDesc: "긴급도와 중요도로 정렬", featHabitsLabel: "습관 추적기", featHabitsDesc: "연속 기록으로 습관 관리", featPomodoroLabel: "집중 타이머", featPomodoroDesc: "작업/휴식 타이머", featReflectLabel: "주간 돌아보기", featReflectDesc: "이번 주를 돌아봅니다", addPlaceholder: "할 일 추가…", addBtn: "추가", hideDetails: "세부정보 숨기기", showDetails: "+ 마감일, 카테고리, 우선순위", categoryPlaceholder: "카테고리", priorityPlaceholder: "우선순위", low: "낮음", medium: "보통", high: "높음", clearCompleted: "완료 항목 지우기", emptyAddFirst: "위에서 첫 할 일을 추가하세요.", holidayTag: "한국 공휴일", notesPlaceholder: "메모…", subtaskPlaceholder: "하위 작업 추가…", matrixDo: "지금 하기", matrixDoDesc: "긴급하고 중요함", matrixSchedule: "계획하기", matrixScheduleDesc: "중요하지만 긴급하지 않음", matrixDelegate: "위임 / 빠르게 처리", matrixDelegateDesc: "긴급하지만 우선순위 낮음", matrixLater: "나중에", matrixLaterDesc: "긴급하지도 중요하지도 않음", matrixEmpty: "항목 없음", habitPlaceholder: "습관 추가…", habitEmpty: "아직 습관이 없습니다.", streakDay: "🔥 {n}일 연속", noStreak: "아직 기록 없음", freezeUsed: "❄️ 프리즈 사용됨", focusNoTask: "선택된 작업 없음", focusLabel: "집중", breakLabel: "휴식", start: "시작", pause: "일시정지", reset: "재설정", reflectTitle: "이번 주", reflectCompleted: "완료", reflectBestStreak: "최고 연속 기록", reflectNoData: "이번 주에 완료한 항목이 없습니다.", savedLocally: "이 기기에 저장됨" },
+  zh: { title: "今日待办", loading: "加载中…", allDone: "全部完成。", nothingYet: "暂时没有待办事项。", itemsLeft: "还剩 {n} 项", tabList: "列表", tabMatrix: "矩阵", tabHabits: "习惯", tabFocus: "专注", tabReflect: "回顾", settingsTitle: "可选功能", languageLabel: "语言", featMatrixLabel: "艾森豪威尔矩阵", featMatrixDesc: "按紧急与重要程度排列", featHabitsLabel: "习惯追踪", featHabitsDesc: "通过连续打卡追踪习惯", featPomodoroLabel: "专注计时器", featPomodoroDesc: "工作/休息计时器", featReflectLabel: "每周回顾", featReflectDesc: "回顾本周完成情况", addPlaceholder: "添加待办事项…", addBtn: "添加", hideDetails: "隐藏详情", showDetails: "+ 截止日期、分类、优先级", categoryPlaceholder: "分类", priorityPlaceholder: "优先级", low: "低", medium: "中", high: "高", clearCompleted: "清除已完成", emptyAddFirst: "在上方添加你的第一个任务。", holidayTag: "韩国假日", notesPlaceholder: "备注…", subtaskPlaceholder: "添加子任务…", matrixDo: "立即处理", matrixDoDesc: "紧急且重要", matrixSchedule: "安排计划", matrixScheduleDesc: "重要但不紧急", matrixDelegate: "委派 / 快速处理", matrixDelegateDesc: "紧急但优先级较低", matrixLater: "稍后处理", matrixLaterDesc: "既不紧急也不关键", matrixEmpty: "暂无内容", habitPlaceholder: "添加习惯…", habitEmpty: "还没有习惯。", streakDay: "🔥 连续 {n} 天", noStreak: "还没有连续记录", freezeUsed: "❄️ 已使用冻结", focusNoTask: "未选择任务", focusLabel: "专注", breakLabel: "休息", start: "开始", pause: "暂停", reset: "重置", reflectTitle: "本周", reflectCompleted: "已完成", reflectBestStreak: "最佳连续记录", reflectNoData: "本周还没有完成任何事项。", savedLocally: "已保存到此设备" },
+  ar: { title: "قائمة اليوم", loading: "جارٍ التحميل…", allDone: "تم إنجاز كل شيء.", nothingYet: "لا يوجد شيء بعد.", itemsLeft: "{n} متبقٍ", tabList: "القائمة", tabMatrix: "المصفوفة", tabHabits: "العادات", tabFocus: "التركيز", tabReflect: "مراجعة", settingsTitle: "ميزات اختيارية", languageLabel: "اللغة", featMatrixLabel: "مصفوفة أيزنهاور", featMatrixDesc: "ترتيب حسب الإلحاح والأهمية", featHabitsLabel: "متتبع العادات", featHabitsDesc: "تتبع العادات مع سلاسل الإنجاز", featPomodoroLabel: "مؤقت التركيز", featPomodoroDesc: "مؤقت عمل/راحة", featReflectLabel: "مراجعة أسبوعية", featReflectDesc: "نظرة على هذا الأسبوع", addPlaceholder: "أضف مهمة…", addBtn: "إضافة", hideDetails: "إخفاء التفاصيل", showDetails: "+ تاريخ، فئة، أولوية", categoryPlaceholder: "الفئة", priorityPlaceholder: "الأولوية", low: "منخفضة", medium: "متوسطة", high: "عالية", clearCompleted: "مسح المكتملة", emptyAddFirst: "أضف مهمتك الأولى أعلاه.", holidayTag: "عطلة كورية", notesPlaceholder: "ملاحظات…", subtaskPlaceholder: "أضف مهمة فرعية…", matrixDo: "افعل أولاً", matrixDoDesc: "عاجل ومهم", matrixSchedule: "خطط له", matrixScheduleDesc: "مهم وغير عاجل", matrixDelegate: "فوّض / أنجز بسرعة", matrixDelegateDesc: "عاجل بأولوية أقل", matrixLater: "لاحقًا", matrixLaterDesc: "غير عاجل وغير حرج", matrixEmpty: "لا يوجد شيء هنا", habitPlaceholder: "أضف عادة…", habitEmpty: "لا توجد عادات بعد.", streakDay: "🔥 {n} أيام متتالية", noStreak: "لا يوجد تتابع بعد", freezeUsed: "❄️ تم استخدام التجميد", focusNoTask: "لم يتم اختيار مهمة", focusLabel: "تركيز", breakLabel: "راحة", start: "ابدأ", pause: "إيقاف مؤقت", reset: "إعادة تعيين", reflectTitle: "هذا الأسبوع", reflectCompleted: "مكتملة", reflectBestStreak: "أفضل سلسلة", reflectNoData: "لم يكتمل شيء هذا الأسبوع.", savedLocally: "محفوظ على هذا الجهاز" },
+  hi: { title: "आज की सूची", loading: "लोड हो रहा है…", allDone: "सब पूरा हो गया।", nothingYet: "अभी कुछ भी नहीं है।", itemsLeft: "{n} बाकी", tabList: "सूची", tabMatrix: "मैट्रिक्स", tabHabits: "आदतें", tabFocus: "फोकस", tabReflect: "समीक्षा", settingsTitle: "वैकल्पिक सुविधाएं", languageLabel: "भाषा", featMatrixLabel: "आइज़नहावर मैट्रिक्स", featMatrixDesc: "अत्यावश्यक बनाम महत्वपूर्ण के अनुसार", featHabitsLabel: "आदत ट्रैकर", featHabitsDesc: "स्ट्रीक के साथ आदतें ट्रैक करें", featPomodoroLabel: "फोकस टाइमर", featPomodoroDesc: "कार्य/विश्राम टाइमर", featReflectLabel: "साप्ताहिक समीक्षा", featReflectDesc: "इस सप्ताह पर एक नज़र", addPlaceholder: "कार्य जोड़ें…", addBtn: "जोड़ें", hideDetails: "विवरण छिपाएं", showDetails: "+ नियत तिथि, श्रेणी, प्राथमिकता", categoryPlaceholder: "श्रेणी", priorityPlaceholder: "प्राथमिकता", low: "कम", medium: "मध्यम", high: "उच्च", clearCompleted: "पूर्ण किए गए हटाएं", emptyAddFirst: "ऊपर अपना पहला कार्य जोड़ें।", holidayTag: "कोरियाई अवकाश", notesPlaceholder: "नोट्स…", subtaskPlaceholder: "उप-कार्य जोड़ें…", matrixDo: "पहले करें", matrixDoDesc: "अत्यावश्यक और महत्वपूर्ण", matrixSchedule: "योजना बनाएं", matrixScheduleDesc: "महत्वपूर्ण, अत्यावश्यक नहीं", matrixDelegate: "सौंपें / जल्दी निपटाएं", matrixDelegateDesc: "अत्यावश्यक, कम प्राथमिकता", matrixLater: "बाद में", matrixLaterDesc: "न अत्यावश्यक न महत्वपूर्ण", matrixEmpty: "यहां कुछ नहीं है", habitPlaceholder: "आदत जोड़ें…", habitEmpty: "अभी कोई आदत नहीं।", streakDay: "🔥 {n} दिन की स्ट्रीक", noStreak: "अभी कोई स्ट्रीक नहीं", freezeUsed: "❄️ फ़्रीज़ उपयोग हुआ", focusNoTask: "कोई कार्य चयनित नहीं", focusLabel: "फोकस", breakLabel: "ब्रेक", start: "शुरू करें", pause: "रोकें", reset: "रीसेट", reflectTitle: "इस सप्ताह", reflectCompleted: "पूर्ण", reflectBestStreak: "सर्वश्रेष्ठ स्ट्रीक", reflectNoData: "इस सप्ताह कुछ भी पूरा नहीं हुआ।", savedLocally: "इस डिवाइस पर सहेजा गया" },
+  tr: { title: "Bugünün listesi", loading: "Yükleniyor…", allDone: "Hepsi tamam.", nothingYet: "Henüz bir şey yok.", itemsLeft: "{n} kaldı", tabList: "Liste", tabMatrix: "Matris", tabHabits: "Alışkanlıklar", tabFocus: "Odak", tabReflect: "Özet", settingsTitle: "İsteğe bağlı özellikler", languageLabel: "Dil", featMatrixLabel: "Eisenhower Matrisi", featMatrixDesc: "Acil vs. önemliye göre sırala", featHabitsLabel: "Alışkanlık takibi", featHabitsDesc: "Seri ile alışkanlık takibi", featPomodoroLabel: "Odak zamanlayıcı", featPomodoroDesc: "Çalışma/mola zamanlayıcısı", featReflectLabel: "Haftalık özet", featReflectDesc: "Bu haftaya bakış", addPlaceholder: "Yapılacak ekle…", addBtn: "Ekle", hideDetails: "Ayrıntıları gizle", showDetails: "+ son tarih, kategori, öncelik", categoryPlaceholder: "Kategori", priorityPlaceholder: "Öncelik", low: "Düşük", medium: "Orta", high: "Yüksek", clearCompleted: "Tamamlananları temizle", emptyAddFirst: "Yukarıdan ilk görevini ekle.", holidayTag: "KR tatili", notesPlaceholder: "Notlar…", subtaskPlaceholder: "Alt görev ekle…", matrixDo: "Önce yap", matrixDoDesc: "Acil ve önemli", matrixSchedule: "Planla", matrixScheduleDesc: "Önemli, acil değil", matrixDelegate: "Devret / hızlı hallet", matrixDelegateDesc: "Acil, önceliği düşük", matrixLater: "Sonra", matrixLaterDesc: "Ne acil ne kritik", matrixEmpty: "Burada bir şey yok", habitPlaceholder: "Alışkanlık ekle…", habitEmpty: "Henüz alışkanlık yok.", streakDay: "🔥 {n} gün seri", noStreak: "Henüz seri yok", freezeUsed: "❄️ dondurma kullanıldı", focusNoTask: "Görev seçilmedi", focusLabel: "ODAK", breakLabel: "MOLA", start: "Başlat", pause: "Duraklat", reset: "Sıfırla", reflectTitle: "Bu hafta", reflectCompleted: "tamamlandı", reflectBestStreak: "En iyi seri", reflectNoData: "Bu hafta hiçbir şey tamamlanmadı.", savedLocally: "Bu cihazda kaydedildi" },
+  nl: { title: "Lijst van vandaag", loading: "Laden…", allDone: "Alles klaar.", nothingYet: "Nog niets te doen.", itemsLeft: "{n} over", tabList: "Lijst", tabMatrix: "Matrix", tabHabits: "Gewoontes", tabFocus: "Focus", tabReflect: "Terugblik", settingsTitle: "Optionele functies", languageLabel: "Taal", featMatrixLabel: "Eisenhower Matrix", featMatrixDesc: "Urgent vs. belangrijk", featHabitsLabel: "Gewoonte-tracker", featHabitsDesc: "Gewoontes bijhouden met reeksen", featPomodoroLabel: "Focus-timer", featPomodoroDesc: "Werk/pauze-timer", featReflectLabel: "Wekelijkse terugblik", featReflectDesc: "Een blik op deze week", addPlaceholder: "Taak toevoegen…", addBtn: "Toevoegen", hideDetails: "Details verbergen", showDetails: "+ datum, categorie, prioriteit", categoryPlaceholder: "Categorie", priorityPlaceholder: "Prioriteit", low: "Laag", medium: "Gemiddeld", high: "Hoog", clearCompleted: "Voltooide wissen", emptyAddFirst: "Voeg je eerste taak toe.", holidayTag: "KR feestdag", notesPlaceholder: "Notities…", subtaskPlaceholder: "Subtaak toevoegen…", matrixDo: "Eerst doen", matrixDoDesc: "Urgent en belangrijk", matrixSchedule: "Plannen", matrixScheduleDesc: "Belangrijk, niet urgent", matrixDelegate: "Delegeren / snel", matrixDelegateDesc: "Urgent, lage prioriteit", matrixLater: "Later", matrixLaterDesc: "Niet urgent, niet kritiek", matrixEmpty: "Niets hier", habitPlaceholder: "Gewoonte toevoegen…", habitEmpty: "Nog geen gewoontes.", streakDay: "🔥 {n} dagen op rij", noStreak: "Nog geen reeks", freezeUsed: "❄️ bevriezing gebruikt", focusNoTask: "Geen taak geselecteerd", focusLabel: "FOCUS", breakLabel: "PAUZE", start: "Start", pause: "Pauze", reset: "Reset", reflectTitle: "Deze week", reflectCompleted: "voltooid", reflectBestStreak: "Beste reeks", reflectNoData: "Nog niets voltooid deze week.", savedLocally: "Opgeslagen op dit apparaat" },
+  id: { title: "Daftar hari ini", loading: "Memuat…", allDone: "Semua selesai.", nothingYet: "Belum ada tugas.", itemsLeft: "{n} tersisa", tabList: "Daftar", tabMatrix: "Matriks", tabHabits: "Kebiasaan", tabFocus: "Fokus", tabReflect: "Refleksi", settingsTitle: "Fitur opsional", languageLabel: "Bahasa", featMatrixLabel: "Matriks Eisenhower", featMatrixDesc: "Urutkan berdasarkan mendesak vs. penting", featHabitsLabel: "Pelacak kebiasaan", featHabitsDesc: "Lacak kebiasaan dengan rentetan", featPomodoroLabel: "Timer fokus", featPomodoroDesc: "Timer kerja/istirahat", featReflectLabel: "Refleksi mingguan", featReflectDesc: "Lihat kembali minggu ini", addPlaceholder: "Tambah tugas…", addBtn: "Tambah", hideDetails: "Sembunyikan detail", showDetails: "+ tenggat, kategori, prioritas", categoryPlaceholder: "Kategori", priorityPlaceholder: "Prioritas", low: "Rendah", medium: "Sedang", high: "Tinggi", clearCompleted: "Hapus yang selesai", emptyAddFirst: "Tambahkan tugas pertamamu.", holidayTag: "Libur KR", notesPlaceholder: "Catatan…", subtaskPlaceholder: "Tambah subtugas…", matrixDo: "Lakukan dulu", matrixDoDesc: "Mendesak & penting", matrixSchedule: "Jadwalkan", matrixScheduleDesc: "Penting, tidak mendesak", matrixDelegate: "Delegasikan / cepat", matrixDelegateDesc: "Mendesak, prioritas rendah", matrixLater: "Nanti", matrixLaterDesc: "Tidak mendesak, tidak kritis", matrixEmpty: "Tidak ada apa-apa di sini", habitPlaceholder: "Tambah kebiasaan…", habitEmpty: "Belum ada kebiasaan.", streakDay: "🔥 {n} hari beruntun", noStreak: "Belum ada rentetan", freezeUsed: "❄️ pembekuan digunakan", focusNoTask: "Belum ada tugas dipilih", focusLabel: "FOKUS", breakLabel: "ISTIRAHAT", start: "Mulai", pause: "Jeda", reset: "Atur ulang", reflectTitle: "Minggu ini", reflectCompleted: "selesai", reflectBestStreak: "Rentetan terbaik", reflectNoData: "Belum ada yang selesai minggu ini.", savedLocally: "Disimpan di perangkat ini" },
+};
+function t(key, vars) {
+  const dict = OVERRIDES[state.settings.lang] || {};
+  let s = dict[key] ?? EN[key] ?? key;
+  if (vars) Object.keys(vars).forEach((k) => { s = s.replace("{" + k + "}", vars[k]); });
+  return s;
+}
+
+// ---------- state ----------
+function loadJSON(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
+function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
+
+const uid = () => Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+
+let state = {
+  items: loadJSON(ITEMS_KEY, []),
+  habits: loadJSON(HABITS_KEY, []),
+  settings: Object.assign({ matrix: false, habits: false, pomodoro: false, reflection: false, lang: "en" }, loadJSON(SETTINGS_KEY, {})),
+  view: "list",
+  showSettings: false,
+  activeCategory: null,
+  expandedId: null,
+  timer: { seconds: 25 * 60, running: false, mode: "work" },
+  landscapeUrl: null,
+  draftDue: "",
+  draftDueAuto: false,
+  draftTime: "",
+  draftInputText: "",
+  draftSuggestDate: false,
+  draftCategoryText: "",
+  draftPriority: null,
+  sidebarOpen: false,
+  calendarOpen: false,
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth(),
+};
+
+function saveItems(next) { state.items = next; saveJSON(ITEMS_KEY, next); render(); }
+function saveHabits(next) { state.habits = next; saveJSON(HABITS_KEY, next); render(); }
+function saveSettings(next) { state.settings = next; saveJSON(SETTINGS_KEY, next); render(); }
+
+// ---------- domain helpers ----------
+function dueLabel(dueDate) {
+  if (!dueDate) return null;
+  const diff = Math.round((startOfDay(new Date(dueDate + "T00:00:00")) - startOfDay(new Date())) / 86400000);
+  if (diff === 0) return { text: "Today", tone: "today" };
+  if (diff === 1) return { text: "Tomorrow", tone: "upcoming" };
+  if (diff === -1) return { text: "Yesterday", tone: "overdue" };
+  if (diff < -1) return { text: (-diff) + "d overdue", tone: "overdue" };
+  if (diff > 1 && diff <= 6) return { text: new Date(dueDate + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" }), tone: "upcoming" };
+  return { text: new Date(dueDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }), tone: "upcoming" };
+}
+function isUrgent(item) {
+  if (!item.dueDate) return false;
+  return Math.round((startOfDay(new Date(item.dueDate + "T00:00:00")) - startOfDay(new Date())) / 86400000) <= 0;
+}
+function streakInfo(h) {
+  let count = 0, freezeLeft = 1, usedFreeze = false, d = new Date();
+  while (true) {
+    const key = dayKey(d);
+    if (h.doneDates.includes(key)) { count++; d.setDate(d.getDate() - 1); continue; }
+    if (freezeLeft > 0 && count > 0) { freezeLeft--; usedFreeze = true; d.setDate(d.getDate() - 1); continue; }
+    break;
+  }
+  return { count, usedFreeze };
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+// ---------- natural-language date detection ----------
+// Rule-based on-device parsing (not a live model call) — this runs instantly with no network
+// dependency, which matters given everything we've hit trying to reach external services from
+// inside a file like this. Same idea as Todoist/TickTick's "quick add" date parsing.
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+
+// Phrases that usually mean a task is time-sensitive even when no explicit date is stated —
+// e.g. "package dropped off" or "call the dentist" often implies a deadline the person just
+// hasn't written down yet. Rather than guess a date we can't actually know, this drives a
+// highlight on the date button so the user notices and confirms one themselves.
+const TIME_SIGNAL_KEYWORDS = [
+  "drop off", "dropped off", "drop-off", "pick up", "picked up", "pickup",
+  "meeting", "appointment", "call", "deadline", "due", "submit", "renew",
+  "pay", "deliver", "delivery", "flight", "reservation", "book", "rsvp",
+  "expire", "expires", "expiring", "return", "interview", "invoice",
+];
+function hasTimeSignal(text) {
+  const lower = text.toLowerCase();
+  return TIME_SIGNAL_KEYWORDS.some((k) => lower.includes(k));
+}
+function fmtDate(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function formatTime(hhmm) {
+  if (!hhmm) return "";
+  const parts = hhmm.split(":");
+  const h = parseInt(parts[0], 10), m = parts[1];
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return h12 + ":" + m + " " + period;
+}
+function parseDateFromText(text) {
+  const lower = text.toLowerCase();
+  const today = startOfDay(new Date());
+
+  if (/\btoday\b/.test(lower)) return fmtDate(today);
+  if (/\btomorrow\b/.test(lower)) { const d = new Date(today); d.setDate(d.getDate() + 1); return fmtDate(d); }
+  if (/\bday after tomorrow\b/.test(lower)) { const d = new Date(today); d.setDate(d.getDate() + 2); return fmtDate(d); }
+
+  let m = lower.match(/\bin (\d+) days?\b/);
+  if (m) { const d = new Date(today); d.setDate(d.getDate() + parseInt(m[1], 10)); return fmtDate(d); }
+  m = lower.match(/\bin (\d+) weeks?\b/);
+  if (m) { const d = new Date(today); d.setDate(d.getDate() + parseInt(m[1], 10) * 7); return fmtDate(d); }
+  if (/\bnext week\b/.test(lower)) { const d = new Date(today); d.setDate(d.getDate() + 7); return fmtDate(d); }
+
+  for (let i = 0; i < WEEKDAYS.length; i++) {
+    const re = new RegExp("\\b(next )?" + WEEKDAYS[i] + "\\b");
+    const wm = lower.match(re);
+    if (wm) {
+      const d = new Date(today);
+      let diff = (i - d.getDay() + 7) % 7;
+      if (diff === 0) diff = 7; // "monday" in a task always means the next one, not today
+      if (wm[1]) diff += 7; // "next monday" skips an extra week
+      d.setDate(d.getDate() + diff);
+      return fmtDate(d);
+    }
+  }
+
+  for (let i = 0; i < MONTHS.length; i++) {
+    const re = new RegExp("\\b(" + MONTHS[i] + "|" + MONTHS[i].slice(0, 3) + ")\\.?\\s+(\\d{1,2})(st|nd|rd|th)?\\b");
+    const mm = lower.match(re);
+    if (mm) {
+      const day = parseInt(mm[2], 10);
+      let year = today.getFullYear();
+      const candidate = new Date(year, i, day);
+      if (candidate < today) candidate.setFullYear(year + 1);
+      return fmtDate(candidate);
+    }
+  }
+
+  m = lower.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+  if (m) {
+    const mo = parseInt(m[1], 10) - 1, day = parseInt(m[2], 10);
+    let year = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10)) : today.getFullYear();
+    const candidate = new Date(year, mo, day);
+    if (!m[3] && candidate < today) candidate.setFullYear(year + 1);
+    if (candidate.getMonth() === mo) return fmtDate(candidate);
+  }
+
+  return null;
+}
+
+// ---------- actions (called from inline event handlers) ----------
+function addItem() {
+  const textEl = document.getElementById("draftInput");
+  const text = textEl.value.trim();
+  if (!text) return;
+  const dueDate = state.draftDue || parseDateFromText(text);
+  saveItems([{
+    id: uid(), text, done: false, createdAt: Date.now(), completedAt: null,
+    category: state.draftCategoryText.trim() || null,
+    priority: state.draftPriority || null,
+    dueDate: dueDate || null,
+    dueTime: (dueDate && state.draftTime) || null,
+    notes: "", subtasks: [],
+  }, ...state.items]);
+  state.draftDue = ""; state.draftDueAuto = false; state.calendarOpen = false; state.draftInputText = ""; state.draftTime = "";
+  state.draftCategoryText = ""; state.draftPriority = null; state.draftSuggestDate = false;
+}
+function setDraftTime(val) { state.draftTime = val; render(); }
+function onDraftInput(text) {
+  state.draftInputText = text;
+  // Live-preview an auto-detected date under the input, without overriding a manual calendar pick.
+  if (state.calendarOpen) return;
+  const trimmed = text.trim();
+  const detected = trimmed ? parseDateFromText(text) : null;
+  const suggest = !detected && !state.draftDue && !!trimmed && hasTimeSignal(text);
+  const dateChanged = detected !== (state.draftDueAuto ? state.draftDue : null);
+  const suggestChanged = suggest !== state.draftSuggestDate;
+  if (dateChanged || suggestChanged) {
+    if (detected) { state.draftDue = detected; state.draftDueAuto = true; }
+    else if (state.draftDueAuto) { state.draftDue = ""; state.draftDueAuto = false; }
+    state.draftSuggestDate = suggest;
+    render();
+    const el = document.getElementById("draftInput");
+    el.focus();
+    el.setSelectionRange(text.length, text.length);
+  }
+}
+function toggleItem(id) {
+  state.justToggled = id;
+  saveItems(state.items.map((it) => it.id === id ? Object.assign({}, it, { done: !it.done, completedAt: !it.done ? Date.now() : null }) : it));
+  setTimeout(() => { state.justToggled = null; }, 400);
+}
+function deleteItem(id) { saveItems(state.items.filter((it) => it.id !== id)); }
+function clearDone() { saveItems(state.items.filter((it) => !it.done)); }
+function toggleExpand(id) { state.expandedId = state.expandedId === id ? null : id; render(); }
+function updateNotes(id, val) { state.items = state.items.map((it) => it.id === id ? Object.assign({}, it, { notes: val }) : it); saveJSON(ITEMS_KEY, state.items); }
+function setItemPriority(id, priorityId) {
+  const item = state.items.find((it) => it.id === id);
+  const next = item.priority === priorityId ? null : priorityId;
+  saveItems(state.items.map((it) => it.id === id ? Object.assign({}, it, { priority: next }) : it));
+}
+function setItemCategory(id, val) { saveItems(state.items.map((it) => it.id === id ? Object.assign({}, it, { category: val.trim() || null }) : it)); }
+function setItemDueDate(id, val) { saveItems(state.items.map((it) => it.id === id ? Object.assign({}, it, { dueDate: val || null, dueTime: val ? it.dueTime : null }) : it)); }
+function setItemDueTime(id, val) { saveItems(state.items.map((it) => it.id === id ? Object.assign({}, it, { dueTime: val || null }) : it)); }
+function addSubtask(id) {
+  const input = document.getElementById("subDraft_" + id);
+  const text = input.value.trim();
+  if (!text) return;
+  saveItems(state.items.map((it) => it.id === id ? Object.assign({}, it, { subtasks: [...(it.subtasks || []), { id: uid(), text, done: false }] }) : it));
+}
+function toggleSubtask(id, subId) {
+  saveItems(state.items.map((it) => it.id !== id ? it : Object.assign({}, it, { subtasks: it.subtasks.map((s) => s.id === subId ? Object.assign({}, s, { done: !s.done }) : s) })));
+}
+function deleteSubtask(id, subId) {
+  saveItems(state.items.map((it) => it.id !== id ? it : Object.assign({}, it, { subtasks: it.subtasks.filter((s) => s.id !== subId) })));
+}
+function setCategory(cat) { state.activeCategory = cat; render(); }
+
+function toggleCalendar() {
+  state.calendarOpen = !state.calendarOpen;
+  if (state.calendarOpen) {
+    const base = state.draftDue ? new Date(state.draftDue + "T00:00:00") : new Date();
+    state.calendarYear = base.getFullYear();
+    state.calendarMonth = base.getMonth();
+  }
+  render();
+}
+function calendarNav(delta) {
+  state.calendarMonth += delta;
+  if (state.calendarMonth < 0) { state.calendarMonth = 11; state.calendarYear--; }
+  if (state.calendarMonth > 11) { state.calendarMonth = 0; state.calendarYear++; }
+  render();
+}
+function pickCalendarDay(dateStr) {
+  state.draftDue = dateStr; state.draftDueAuto = false; state.calendarOpen = false; state.draftSuggestDate = false; render();
+}
+function clearDraftDue() { state.draftDue = ""; state.draftDueAuto = false; state.draftTime = ""; render(); }
+function setView(v) { state.view = v; state.sidebarOpen = false; render(); }
+function toggleSidebar() { state.sidebarOpen = !state.sidebarOpen; render(); }
+function closeSidebar() { state.sidebarOpen = false; render(); }
+function openSettingsFromSidebar() { state.sidebarOpen = false; state.showSettings = true; render(); }
+function toggleSettingsPanel() { state.showSettings = !state.showSettings; render(); }
+function toggleFeature(key, checked) { saveSettings(Object.assign({}, state.settings, { [key]: checked })); }
+function setLang(lang) { saveSettings(Object.assign({}, state.settings, { lang })); refreshLandscape(); }
+function togglePriority(id) { state.draftPriority = state.draftPriority === id ? null : id; render(); }
+
+function addHabit() {
+  const input = document.getElementById("habitDraft");
+  const text = input.value.trim();
+  if (!text) return;
+  saveHabits([...state.habits, { id: uid(), text, doneDates: [] }]);
+}
+function toggleHabitToday(id) {
+  const today = dayKey(new Date());
+  saveHabits(state.habits.map((h) => h.id !== id ? h : Object.assign({}, h, { doneDates: h.doneDates.includes(today) ? h.doneDates.filter((d) => d !== today) : [...h.doneDates, today] })));
+}
+function deleteHabit(id) { saveHabits(state.habits.filter((h) => h.id !== id)); }
+
+let timerInterval = null;
+function timerToggle() {
+  state.timer.running = !state.timer.running;
+  if (state.timer.running) {
+    timerInterval = setInterval(() => {
+      state.timer.seconds -= 1;
+      if (state.timer.seconds <= 0) {
+        state.timer.mode = state.timer.mode === "work" ? "break" : "work";
+        state.timer.seconds = state.timer.mode === "work" ? 25 * 60 : 5 * 60;
+      }
+      renderTimerOnly();
+    }, 1000);
+  } else {
+    clearInterval(timerInterval);
+  }
+  render();
+}
+function timerReset() {
+  clearInterval(timerInterval);
+  state.timer = { seconds: 25 * 60, running: false, mode: "work" };
+  render();
+}
+function renderTimerOnly() {
+  const el = document.getElementById("timerNum");
+  if (!el) return;
+  const mm = String(Math.floor(state.timer.seconds / 60)).padStart(2, "0");
+  const ss = String(state.timer.seconds % 60).padStart(2, "0");
+  el.textContent = mm + ":" + ss;
+}
+
+// ---------- render ----------
+
+function renderHeader() {
+  const remaining = state.items.filter((i) => !i.done).length;
+  const total = state.items.length;
+  const subtitle = total === 0 ? t("nothingYet") : (remaining === 0 ? t("allDone") : t("itemsLeft", { n: "<b>" + remaining + "</b>" }));
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? t("greetMorning") : hour < 18 ? t("greetAfternoon") : t("greetEvening");
+  return '' +
+    '<div class="header-row">' +
+      '<div>' +
+        '<p class="greeting">' + esc(greeting) + '</p>' +
+        '<h1>' + esc(t("title")) + '</h1>' +
+        '<p class="subtitle">' + subtitle + '</p>' +
+        '<p class="sync-text">' + esc(t("savedLocally")) + '</p>' +
+      '</div>' +
+      '<button class="gear-btn" aria-label="' + esc(t("settingsTitle")) + '" onclick="toggleSettingsPanel()">⚙</button>' +
+    '</div>';
+}
+
+function hamburgerIconSvg() {
+  return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+}
+
+function renderSidebar() {
+  const navItems = [["list", t("tabList")], ["calendar", t("tabCalendar")]];
+  if (state.settings.matrix) navItems.push(["matrix", t("tabMatrix")]);
+  if (state.settings.habits) navItems.push(["habits", t("tabHabits")]);
+  if (state.settings.pomodoro) navItems.push(["focus", t("tabFocus")]);
+  if (state.settings.reflection) navItems.push(["reflect", t("tabReflect")]);
+
+  const navHtml = navItems.map(([id, label]) =>
+    '<button class="nav-item' + (state.view === id ? " active" : "") + '" onclick="setView(\'' + id + '\')">' + esc(label) + '</button>'
+  ).join("");
+
+  return '' +
+    '<div id="sidebarOverlay" class="' + (state.sidebarOpen ? "open" : "") + '" onclick="closeSidebar()"></div>' +
+    '<div id="sidebar" class="' + (state.sidebarOpen ? "open" : "") + '" aria-hidden="' + (!state.sidebarOpen) + '">' +
+      '<div class="sidebar-head">' +
+        '<span class="sidebar-title">Nudge</span>' +
+        '<button class="sidebar-close" aria-label="Close menu" onclick="closeSidebar()">×</button>' +
+      '</div>' +
+      '<nav class="sidebar-nav">' + navHtml + '</nav>' +
+      '<button class="nav-item sidebar-settings" onclick="openSettingsFromSidebar()">⚙ ' + esc(t("settingsTitle")) + '</button>' +
+    '</div>';
+}
+
+function renderSettings() {
+  if (!state.showSettings) return "";
+  const features = [
+    ["matrix", t("featMatrixLabel"), t("featMatrixDesc")],
+    ["habits", t("featHabitsLabel"), t("featHabitsDesc")],
+    ["pomodoro", t("featPomodoroLabel"), t("featPomodoroDesc")],
+    ["reflection", t("featReflectLabel"), t("featReflectDesc")],
+  ];
+  const rows = features.map(([key, label, desc]) =>
+    '<label class="setting-row">' +
+      '<input type="checkbox" ' + (state.settings[key] ? "checked" : "") + ' onchange="toggleFeature(\'' + key + '\', this.checked)" style="margin-top:3px" />' +
+      '<div><div class="label">' + esc(label) + '</div><div class="desc">' + esc(desc) + '</div></div>' +
+    '</label>'
+  ).join("");
+  const langOptions = LANGS.map((l) => '<option value="' + l.code + '"' + (state.settings.lang === l.code ? " selected" : "") + '>' + esc(l.name) + '</option>').join("");
+  return '<div class="settings-panel">' +
+    '<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#2E2A45">' + esc(t("settingsTitle")) + '</div>' +
+    rows +
+    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #EDE6F7">' +
+      '<div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#2E2A45">' + esc(t("languageLabel")) + '</div>' +
+      '<select onchange="setLang(this.value)">' + langOptions + '</select>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderTag(text, cls) { return '<span class="tag' + (cls ? " " + cls : "") + '">' + esc(text) + '</span>'; }
+
+function renderListView() {
+  const categories = Array.from(new Set(state.items.filter((i) => i.category).map((i) => i.category)));
+  const chips = categories.length > 0
+    ? '<div class="chip-row">' +
+        '<button class="chip' + (state.activeCategory === null ? " active" : "") + '" onclick="setCategory(null)">All</button>' +
+        categories.map((c) => '<button class="chip' + (state.activeCategory === c ? " active" : "") + '" onclick="setCategory(\'' + esc(c).replace(/'/g, "\\'") + '\')">' + esc(c) + '</button>').join("") +
+      '</div>'
+    : "";
+
+  const dateLabel = state.draftDue ? new Date(state.draftDue + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }) + (state.draftTime ? ", " + formatTime(state.draftTime) : "") : "";
+  const dateBtnHtml =
+    '<div style="position:relative">' +
+      '<button type="button" class="date-btn' + (state.draftDue ? " has-value" : "") + (state.draftSuggestDate ? " suggest" : "") + '" aria-label="' + esc(t("pickDate")) + (dateLabel ? ": " + dateLabel : state.draftSuggestDate ? ": " + t("suggestDate") : "") + '" onclick="toggleCalendar()">' +
+        '<i class="cal-icon" aria-hidden="true">' + calendarIconSvg() + '</i>' +
+        (dateLabel ? '<span>' + esc(dateLabel) + (state.draftDueAuto ? ' <em>' + esc(t("autoDetected")) + '</em>' : "") + '</span>' : "") +
+      '</button>' +
+      (state.draftSuggestDate ? '<div class="suggest-hint">' + esc(t("suggestDate")) + '</div>' : "") +
+      (state.calendarOpen ? renderCalendarPopup() : "") +
+    '</div>';
+
+  const priorityPickerHtml = '<div class="priority-picker">' + PRIORITIES.map((p) => {
+    const active = state.draftPriority === p.id;
+    return '<button type="button" class="priority-pick' + (active ? " active" : "") + '" style="' + (active ? "background:" + p.color + ";border-color:" + p.color : "") + '" aria-pressed="' + active + '" onclick="togglePriority(\'' + p.id + '\')">' +
+      '<i style="background:' + (active ? "#FFFFFF" : p.color) + '" aria-hidden="true"></i>' + esc(t(p.key)) +
+    '</button>';
+  }).join("") + '</div>';
+
+  const categoryInputHtml =
+    '<input type="text" id="draftCategory" list="categoryList" value="' + esc(state.draftCategoryText) + '" placeholder="' + esc(t("categoryPlaceholder")) + '" oninput="state.draftCategoryText=this.value" style="flex:1 1 130px" />' +
+    '<datalist id="categoryList">' + categories.map((c) => '<option value="' + esc(c) + '"></option>').join("") + '</datalist>';
+
+  const visible = state.activeCategory ? state.items.filter((i) => i.category === state.activeCategory) : state.items;
+  const emptyHtml = visible.length === 0
+    ? '<div class="empty">' + esc(state.items.length === 0 ? t("emptyAddFirst") : t("allDone")) + '</div>'
+    : "";
+
+  const rowsHtml = visible.map((item) => {
+    const due = dueLabel(item.dueDate);
+    const holiday = item.dueDate && KOREAN_HOLIDAYS.has(item.dueDate);
+    const priority = PRIORITIES.find((p) => p.id === item.priority);
+    const expanded = state.expandedId === item.id;
+    const subtasks = item.subtasks || [];
+    const subDone = subtasks.filter((s) => s.done).length;
+
+    const tags = [];
+    if (due) tags.push(renderTag(due.text + (item.dueTime ? ", " + formatTime(item.dueTime) : ""), due.tone));
+    if (holiday) tags.push(renderTag(t("holidayTag"), "overdue"));
+    if (item.category) tags.push(renderTag(item.category));
+    if (subtasks.length > 0) tags.push(renderTag(subDone + "/" + subtasks.length));
+    const priorityHtml = priority ? '<span class="priority-dot"><i style="background:' + priority.color + '" aria-hidden="true"></i>' + esc(t(priority.key)) + '</span>' : "";
+    const tagsHtml = (tags.length > 0 || priorityHtml) ? '<div class="tag-row">' + priorityHtml + tags.join("") + '</div>' : "";
+
+    const subtasksHtml = subtasks.map((s) =>
+      '<div class="sub-row">' +
+        '<button class="check-sm' + (s.done ? " done" : "") + '" aria-label="' + esc(s.done ? "Mark subtask as not done" : "Mark subtask as done") + '" onclick="toggleSubtask(\'' + item.id + '\',\'' + s.id + '\')">' + (s.done ? tickSvg(8) : "") + '</button>' +
+        '<span style="flex:1;font-size:14px;' + (s.done ? "text-decoration:line-through;color:#B3A9C9" : "") + '">' + esc(s.text) + '</span>' +
+        '<button class="delete-btn" aria-label="Delete subtask" style="font-size:15px" onclick="deleteSubtask(\'' + item.id + '\',\'' + s.id + '\')">×</button>' +
+      '</div>'
+    ).join("");
+
+    const itemPriorityPickerHtml = '<div class="priority-picker" style="margin-bottom:8px">' + PRIORITIES.map((p) => {
+      const active = item.priority === p.id;
+      return '<button type="button" class="priority-pick' + (active ? " active" : "") + '" style="' + (active ? "background:" + p.color + ";border-color:" + p.color : "") + '" aria-pressed="' + active + '" onclick="setItemPriority(\'' + item.id + '\',\'' + p.id + '\')">' +
+        '<i style="background:' + (active ? "#FFFFFF" : p.color) + '" aria-hidden="true"></i>' + esc(t(p.key)) +
+      '</button>';
+    }).join("") + '</div>';
+
+    const expandHtml =
+      '<div class="expand-panel' + (expanded ? " open" : "") + '">' +
+        itemPriorityPickerHtml +
+        '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">' +
+          '<input type="text" value="' + esc(item.category || "") + '" placeholder="' + esc(t("categoryPlaceholder")) + '" list="categoryList" onchange="setItemCategory(\'' + item.id + '\', this.value)" style="flex:1 1 130px" />' +
+          '<input type="date" value="' + esc(item.dueDate || "") + '" onchange="setItemDueDate(\'' + item.id + '\', this.value)" style="flex:1 1 130px" />' +
+          (item.dueDate ? '<input type="time" value="' + esc(item.dueTime || "") + '" onchange="setItemDueTime(\'' + item.id + '\', this.value)" style="flex:1 1 110px" />' : "") +
+        '</div>' +
+        '<textarea class="notes-area" placeholder="' + esc(t("notesPlaceholder")) + '" oninput="updateNotes(\'' + item.id + '\', this.value)">' + esc(item.notes || "") + '</textarea>' +
+        subtasksHtml +
+        '<div style="display:flex;gap:6px;margin-top:6px">' +
+          '<input type="text" id="subDraft_' + item.id + '" placeholder="' + esc(t("subtaskPlaceholder")) + '" onkeydown="if(event.key===\'Enter\'){addSubtask(\'' + item.id + '\');this.value=\'\'}" />' +
+        '</div>' +
+      '</div>';
+
+    return '<div class="row">' +
+      '<div class="row-flex">' +
+        '<button class="check' + (item.done ? " done" : "") + (state.justToggled === item.id ? " check-pop" : "") + '" aria-label="' + esc(item.done ? "Mark \"" + item.text + "\" as not done" : "Mark \"" + item.text + "\" as done") + '" onclick="toggleItem(\'' + item.id + '\')">' + (item.done ? tickSvg(11) : "") + '</button>' +
+        '<div class="task-text' + (item.done ? " done" : "") + '" onclick="toggleExpand(\'' + item.id + '\')">' + esc(item.text) + tagsHtml + '</div>' +
+        '<button class="delete-btn" aria-label="Delete task" onclick="deleteItem(\'' + item.id + '\')">×</button>' +
+      '</div>' + expandHtml +
+    '</div>';
+  }).join("");
+
+  const clearHtml = state.items.some((i) => i.done) ? '<button class="clear-link" onclick="clearDone()">' + esc(t("clearCompleted")) + '</button>' : "";
+
+  return chips +
+    '<div style="margin-bottom:8px">' +
+      '<div class="add-row">' +
+        '<input type="text" id="draftInput" value="' + esc(state.draftInputText) + '" placeholder="' + esc(t("addPlaceholder")) + '" oninput="onDraftInput(this.value)" onkeydown="if(event.key===\'Enter\')addItem()" />' +
+        dateBtnHtml +
+        '<button class="btn-primary" onclick="addItem()">' + esc(t("addBtn")) + '</button>' +
+      '</div>' +
+      '<div class="quick-row">' + priorityPickerHtml + categoryInputHtml + '</div>' +
+    '</div>' +
+    '<div style="margin-top:16px">' + emptyHtml + rowsHtml + '</div>' +
+    clearHtml;
+}
+
+function tickSvg(size) {
+  const h = Math.round(size * 0.82);
+  return '<svg width="' + size + '" height="' + h + '" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1.5" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function calendarIconSvg() {
+  return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+}
+
+function renderCalendarPopup() {
+  const y = state.calendarYear, m = state.calendarMonth;
+  const first = new Date(y, m, 1);
+  const startOffset = first.getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const todayStr = fmtDate(startOfDay(new Date()));
+  const monthLabel = new Date(y, m, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const weekdayRow = WEEKDAYS.map((w) => '<div class="cal-weekday">' + esc(w.slice(0, 2)) + '</div>').join("");
+
+  let cells = "";
+  for (let i = 0; i < startOffset; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = y + "-" + String(m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+    const cls = "cal-cell" + (dateStr === todayStr ? " today" : "") + (dateStr === state.draftDue ? " selected" : "");
+    cells += '<button type="button" class="' + cls + '" onclick="pickCalendarDay(\'' + dateStr + '\')">' + d + '</button>';
+  }
+
+  const timeRowHtml = state.draftDue
+    ? '<div class="cal-time-row">' +
+        '<label for="calTimeInput">' + esc(t("timeLabel")) + '</label>' +
+        '<input type="time" id="calTimeInput" value="' + esc(state.draftTime) + '" onchange="setDraftTime(this.value)" class="cal-time-input" />' +
+      '</div>'
+    : "";
+
+  return '<div class="cal-popup" role="dialog" aria-label="' + esc(t("pickDate")) + '">' +
+    '<div class="cal-nav">' +
+      '<button type="button" class="cal-nav-btn" aria-label="Previous month" onclick="calendarNav(-1)">‹</button>' +
+      '<span class="cal-month-label">' + esc(monthLabel) + '</span>' +
+      '<button type="button" class="cal-nav-btn" aria-label="Next month" onclick="calendarNav(1)">›</button>' +
+    '</div>' +
+    '<div class="cal-grid cal-weekdays">' + weekdayRow + '</div>' +
+    '<div class="cal-grid">' + cells + '</div>' +
+    timeRowHtml +
+    (state.draftDue ? '<button type="button" class="cal-clear" onclick="clearDraftDue()">' + esc(t("clearDate")) + '</button>' : "") +
+  '</div>';
+}
+
+function renderCalendarView() {
+  const dated = state.items.filter((i) => i.dueDate);
+  if (dated.length === 0) return '<div class="empty">' + esc(t("calendarEmpty")) + '</div>';
+
+  const byDate = {};
+  dated.forEach((i) => { (byDate[i.dueDate] = byDate[i.dueDate] || []).push(i); });
+  const dates = Object.keys(byDate).sort();
+  const todayStr = fmtDate(startOfDay(new Date()));
+
+  return '<div class="cal-view">' + dates.map((d) => {
+    const items = byDate[d].slice().sort((a, b) => (a.dueTime || "99:99").localeCompare(b.dueTime || "99:99"));
+    const isToday = d === todayStr;
+    const isPast = d < todayStr;
+    const holiday = KOREAN_HOLIDAYS.has(d);
+    const dateHeader = new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+    const rows = items.map((item) => {
+      const timeStr = item.dueTime ? formatTime(item.dueTime) : "";
+      return '<div class="cal-task-row">' +
+        '<button class="check-sm' + (item.done ? " done" : "") + '" aria-label="' + esc(item.done ? "Mark as not done" : "Mark as done") + '" onclick="toggleItem(\'' + item.id + '\')">' + (item.done ? tickSvg(8) : "") + '</button>' +
+        '<span class="cal-task-time' + (timeStr ? "" : " muted") + '">' + esc(timeStr || "—") + '</span>' +
+        '<span class="cal-task-text' + (item.done ? " done" : "") + '">' + esc(item.text) + '</span>' +
+      '</div>';
+    }).join("");
+
+    return '<div class="cal-day-group">' +
+      '<div class="cal-day-header' + (isToday ? " today" : "") + (isPast ? " past" : "") + '">' +
+        esc(dateHeader) +
+        (isToday ? ' <span class="cal-today-badge">' + esc(t("todayBadge")) + '</span>' : "") +
+        (holiday ? ' <span class="cal-holiday-badge">' + esc(t("holidayTag")) + '</span>' : "") +
+      '</div>' + rows +
+    '</div>';
+  }).join("") + '</div>';
+}
+
+function renderMatrixView() {
+  const pending = state.items.filter((i) => !i.done);
+  const quadrants = [
+    ["do", t("matrixDo"), t("matrixDoDesc"), (i) => isUrgent(i) && i.priority === "high"],
+    ["schedule", t("matrixSchedule"), t("matrixScheduleDesc"), (i) => !isUrgent(i) && i.priority === "high"],
+    ["delegate", t("matrixDelegate"), t("matrixDelegateDesc"), (i) => isUrgent(i) && i.priority !== "high"],
+    ["later", t("matrixLater"), t("matrixLaterDesc"), (i) => !isUrgent(i) && i.priority !== "high"],
+  ];
+  return '<div class="matrix-grid">' + quadrants.map(([id, title, desc, filter]) => {
+    const list = pending.filter(filter);
+    const itemsHtml = list.length === 0
+      ? '<div style="font-size:12px;color:#A99FC2">' + esc(t("matrixEmpty")) + '</div>'
+      : list.map((i) => '<div class="matrix-item"><button class="check-sm" onclick="toggleItem(\'' + i.id + '\')"></button><span>' + esc(i.text) + '</span></div>').join("");
+    return '<div class="matrix-cell"><div class="title">' + esc(title) + '</div><div class="desc">' + esc(desc) + '</div>' + itemsHtml + '</div>';
+  }).join("") + '</div>';
+}
+
+function renderHabitsView() {
+  const today = dayKey(new Date());
+  const rows = state.habits.map((h) => {
+    const done = h.doneDates.includes(today);
+    const info = streakInfo(h);
+    const streakText = info.count > 0 ? t("streakDay", { n: info.count }) : t("noStreak");
+    return '<div class="row"><div class="row-flex" style="align-items:center">' +
+      '<button class="check' + (done ? " done" : "") + '" aria-label="' + esc(done ? "Mark habit as not done today" : "Mark habit as done today") + '" onclick="toggleHabitToday(\'' + h.id + '\')">' + (done ? tickSvg(11) : "") + '</button>' +
+      '<div style="flex:1"><div style="font-size:16px">' + esc(h.text) + '</div>' +
+      '<div style="font-size:12px;color:#8A81A3;margin-top:2px">' + esc(streakText) + (info.usedFreeze ? " · " + esc(t("freezeUsed")) : "") + '</div></div>' +
+      '<button class="delete-btn" onclick="deleteHabit(\'' + h.id + '\')">×</button>' +
+    '</div></div>';
+  }).join("");
+  return '<div class="add-row" style="margin-bottom:16px">' +
+      '<input type="text" id="habitDraft" placeholder="' + esc(t("habitPlaceholder")) + '" onkeydown="if(event.key===\'Enter\'){addHabit();this.value=\'\'}" />' +
+      '<button class="btn-primary" onclick="addHabit()">' + esc(t("addBtn")) + '</button>' +
+    '</div>' +
+    (state.habits.length === 0 ? '<div class="empty">' + esc(t("habitEmpty")) + '</div>' : rows);
+}
+
+function renderReflectView() {
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return dayKey(d); }).reverse();
+  const completedByDay = days.map((k) => state.items.filter((i) => i.completedAt && dayKey(i.completedAt) === k).length);
+  const total = completedByDay.reduce((a, b) => a + b, 0);
+  const max = Math.max(...completedByDay, 1);
+  const bestStreak = state.habits.reduce((m, h) => Math.max(m, streakInfo(h).count), 0);
+  const chart = total === 0
+    ? '<div class="empty">' + esc(t("reflectNoData")) + '</div>'
+    : '<div class="bar-chart">' + days.map((k, idx) => {
+        const val = completedByDay[idx];
+        return '<div class="bar-col"><div style="font-size:11px;color:#8A81A3">' + val + '</div>' +
+          '<div class="bar-fill" style="height:' + Math.max(6, (val / max) * 70) + 'px"></div>' +
+          '<div style="font-size:10px;color:#A99FC2">' + esc(new Date(k).toLocaleDateString(undefined, { weekday: "narrow" })) + '</div></div>';
+      }).join("") + '</div>';
+  return '<div style="font-size:13px;font-weight:700;color:#2E2A45;margin-bottom:12px">' + esc(t("reflectTitle")) + '</div>' +
+    chart +
+    '<div class="row"><div style="font-size:14px">' + total + ' ' + esc(t("reflectCompleted")) + '</div></div>' +
+    (state.habits.length > 0 ? '<div class="row"><div style="font-size:14px">' + esc(t("reflectBestStreak")) + ': ' + bestStreak + '</div></div>' : "");
+}
+
+function renderFocusView() {
+  const pending = state.items.filter((i) => !i.done);
+  const mm = String(Math.floor(state.timer.seconds / 60)).padStart(2, "0");
+  const ss = String(state.timer.seconds % 60).padStart(2, "0");
+  const modeLabel = state.timer.mode === "work" ? t("focusLabel") : t("breakLabel");
+  const modeColor = state.timer.mode === "work" ? "#9B8AE0" : "#F0A85E";
+  return '<div class="timer-display">' +
+    '<select style="margin-bottom:20px"><option value="">' + esc(t("focusNoTask")) + '</option>' +
+      pending.map((i) => '<option>' + esc(i.text) + '</option>').join("") +
+    '</select>' +
+    '<div style="font-size:12px;font-weight:700;letter-spacing:1px;color:' + modeColor + ';margin-bottom:8px">' + esc(modeLabel) + '</div>' +
+    '<div class="timer-num" id="timerNum">' + mm + ":" + ss + '</div>' +
+    '<div style="display:flex;gap:10px;justify-content:center">' +
+      '<button class="btn-primary" onclick="timerToggle()">' + esc(state.timer.running ? t("pause") : t("start")) + '</button>' +
+      '<button class="btn-primary btn-secondary" onclick="timerReset()">' + esc(t("reset")) + '</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function render() {
+  const dir = RTL_LANGS.has(state.settings.lang) ? "rtl" : "ltr";
+  let body = renderHeader() + renderSettings();
+  if (state.view === "list") body += renderListView();
+  else if (state.view === "calendar") body += renderCalendarView();
+  else if (state.view === "matrix" && state.settings.matrix) body += renderMatrixView();
+  else if (state.view === "habits" && state.settings.habits) body += renderHabitsView();
+  else if (state.view === "focus" && state.settings.pomodoro) body += renderFocusView();
+  else if (state.view === "reflect" && state.settings.reflection) body += renderReflectView();
+  else { state.view = "list"; body = renderHeader() + renderSettings() + renderListView(); }
+
+  document.getElementById("root").innerHTML =
+    '<div id="page" dir="' + dir + '">' +
+      '<button id="hamburgerBtn" aria-label="Open menu" onclick="toggleSidebar()">' + hamburgerIconSvg() + '</button>' +
+      renderSidebar() +
+      '<img id="bgImage" src="' + (state.landscapeUrl || dailyLandscapeUrl()).url + '" alt="" onerror="this.style.display=\'none\'" />' +
+      '<div id="bgCaption">' + esc((state.landscapeUrl || dailyLandscapeUrl()).place) + '</div>' +
+      '<div id="inner">' + body + '</div>' +
+    '</div>';
+}
+
+render();
+refreshLandscape();
+</script>
+</body>
+</html>
