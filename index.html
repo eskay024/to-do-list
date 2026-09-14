@@ -58,6 +58,18 @@
   .check.check-pop { animation: checkPop 0.32s ease; }
   @keyframes checkPop { 0% { transform: scale(1); } 45% { transform: scale(1.3); } 100% { transform: scale(1); } }
   .check-sm { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #C7BEDD; background: transparent; cursor: pointer; flex-shrink: 0; padding: 0; display:flex; align-items:center; justify-content:center; transition: background 0.2s ease, border-color 0.2s ease; }
+  /* AI suggestion bar under the add row */
+  .ai-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 9px 12px; border-radius: 12px; background: #F4F0FD; border: 1px solid #E4DAF9; font-size: 12px; color: #2E2A45; flex-wrap: wrap; }
+  .ai-bar.pending { color: #8A7EB5; font-style: italic; background: #F8F5FE; border-style: dashed; }
+  .ai-bar-text { flex: 1 1 180px; min-width: 0; line-height: 1.5; }
+  .ai-lead { font-weight: 600; color: #6A5AB8; }
+  .ai-reason { display: block; color: #8A7EB5; font-size: 11px; }
+  .ai-bar-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .ai-apply, .ai-dismiss { font-family: inherit; font-size: 12px; border-radius: 999px; padding: 5px 12px; cursor: pointer; border: 1px solid transparent; }
+  .ai-apply { background: #9B8AE0; color: #FFFFFF; font-weight: 500; }
+  .ai-apply:hover { background: #8A78D6; }
+  .ai-dismiss { background: transparent; color: #8A7EB5; border-color: #DCD2F2; }
+  .ai-dismiss:hover { color: #2E2A45; }
   /* calendar view (drawer > Calendar): tasks grouped by date, ordered by time */
   .cal-view { padding: 4px 0 8px; }
   .cal-day-group { margin-bottom: 18px; }
@@ -260,7 +272,7 @@ const EN = {
   reflectTitle: "This week", reflectCompleted: "completed", reflectBestStreak: "Best habit streak", reflectNoData: "Nothing completed yet this week.",
   savedLocally: "Saved on this device",
   greetMorning: "Good morning", greetAfternoon: "Good afternoon", greetEvening: "Good evening",
-  pickDate: "Pick a date", autoDetected: "auto", clearDate: "Clear date", suggestDate: "This looks time-sensitive — add a date?", timeLabel: "Time", calendarEmpty: "Nothing scheduled yet — add a date to a task and it shows up here.", todayBadge: "Today",
+  pickDate: "Pick a date", autoDetected: "auto", clearDate: "Clear date", suggestDate: "This looks time-sensitive — add a date?", timeLabel: "Time", featAiLabel: "AI task analysis", featAiDesc: "Reads what you type and suggests a date, time, priority and category. Needs the deployed backend; nothing is applied until you accept it.", aiThinking: "Reading your task\u2026", aiApply: "Apply", aiDismiss: "Dismiss", aiSuggestLead: "Suggested", calendarEmpty: "Nothing scheduled yet — add a date to a task and it shows up here.", todayBadge: "Today",
 };
 const OVERRIDES = {
   es: { title: "Lista de hoy", loading: "Cargando…", allDone: "Todo listo.", nothingYet: "No tienes nada pendiente.", itemsLeft: "{n} pendientes", tabList: "Lista", tabCalendar: "Calendario", tabMatrix: "Matriz", tabHabits: "Hábitos", tabFocus: "Enfoque", tabReflect: "Repaso", settingsTitle: "Funciones opcionales", languageLabel: "Idioma", featMatrixLabel: "Vista Matriz de Eisenhower", featMatrixDesc: "Ordena tareas por urgente vs. importante", featHabitsLabel: "Seguimiento de hábitos", featHabitsDesc: "Rastrea hábitos diarios con rachas", featPomodoroLabel: "Temporizador de enfoque", featPomodoroDesc: "Temporizador de trabajo/descanso para cualquier tarea", featReflectLabel: "Repaso semanal", featReflectDesc: "Un vistazo a lo que lograste esta semana", addPlaceholder: "Agregar algo por hacer…", addBtn: "Agregar", hideDetails: "Ocultar detalles", showDetails: "+ fecha, categoría, prioridad", categoryPlaceholder: "Categoría", priorityPlaceholder: "Prioridad", low: "Baja", medium: "Media", high: "Alta", clearCompleted: "Borrar completadas", emptyAddFirst: "Agrega tu primera tarea arriba.", holidayTag: "Feriado KR", notesPlaceholder: "Notas…", subtaskPlaceholder: "Agregar subtarea…", matrixDo: "Hacer primero", matrixDoDesc: "Urgente e importante", matrixSchedule: "Planificar", matrixScheduleDesc: "Importante, no urgente", matrixDelegate: "Delegar / rápido", matrixDelegateDesc: "Urgente, baja prioridad", matrixLater: "Más tarde", matrixLaterDesc: "Ni urgente ni crítico", matrixEmpty: "Nada aquí", habitPlaceholder: "Agregar un hábito…", habitEmpty: "Aún no hay hábitos — agrega uno arriba.", streakDay: "🔥 {n} días seguidos", noStreak: "Sin racha aún", freezeUsed: "❄️ congelación usada", focusNoTask: "Ninguna tarea seleccionada", focusLabel: "ENFOQUE", breakLabel: "DESCANSO", start: "Iniciar", pause: "Pausar", reset: "Reiniciar", reflectTitle: "Esta semana", reflectCompleted: "completadas", reflectBestStreak: "Mejor racha", reflectNoData: "Nada completado esta semana.", savedLocally: "Guardado en este dispositivo" },
@@ -296,7 +308,7 @@ const uid = () => Date.now() + "-" + Math.random().toString(36).slice(2, 8);
 let state = {
   items: loadJSON(ITEMS_KEY, []),
   habits: loadJSON(HABITS_KEY, []),
-  settings: Object.assign({ matrix: false, habits: false, pomodoro: false, reflection: false, lang: "en" }, loadJSON(SETTINGS_KEY, {})),
+  settings: Object.assign({ matrix: false, habits: false, pomodoro: false, reflection: false, aiAssist: false, lang: "en" }, loadJSON(SETTINGS_KEY, {})),
   view: "list",
   showSettings: false,
   activeCategory: null,
@@ -308,6 +320,9 @@ let state = {
   draftTime: "",
   draftInputText: "",
   draftSuggestDate: false,
+  aiSuggestion: null,   // { dueDate, dueTime, priority, category, reason }
+  aiPending: false,
+  aiForText: "",        // the draft text aiSuggestion describes
   draftCategoryText: "",
   draftPriority: null,
   sidebarOpen: false,
@@ -444,11 +459,127 @@ function addItem() {
   }, ...state.items]);
   state.draftDue = ""; state.draftDueAuto = false; state.calendarOpen = false; state.draftInputText = ""; state.draftTime = "";
   state.draftCategoryText = ""; state.draftPriority = null; state.draftSuggestDate = false;
+  state.aiSuggestion = null; state.aiPending = false; state.aiForText = ""; aiSeq++;
   render();
 }
 function setDraftTime(val) { state.draftTime = val; render(); }
+
+// ---------- AI task analysis (optional, server-backed) ----------
+// Fires while typing, but never writes to the task: the suggestion sits in a bar
+// the user accepts or dismisses. When the backend is missing or fails, we stay
+// silent and the offline keyword nudge on the date button carries on as before.
+const AI_DEBOUNCE_MS = 900;
+const AI_MIN_CHARS = 12;
+const aiCache = new Map();
+let aiTimer = null;
+let aiSeq = 0;
+
+function aiEligible(text) {
+  return !!state.settings.aiAssist && text.trim().length >= AI_MIN_CHARS;
+}
+
+function scheduleAiAnalysis(text) {
+  clearTimeout(aiTimer);
+  const trimmed = text.trim();
+  if (!aiEligible(text)) {
+    if (state.aiSuggestion || state.aiPending) { state.aiSuggestion = null; state.aiPending = false; state.aiForText = ""; }
+    return;
+  }
+  if (trimmed === state.aiForText) return;          // already showing this one
+  if (aiCache.has(trimmed)) { applyAiResult(trimmed, aiCache.get(trimmed)); return; }
+  aiTimer = setTimeout(() => runAiAnalysis(trimmed), AI_DEBOUNCE_MS);
+}
+
+async function runAiAnalysis(trimmed) {
+  const seq = ++aiSeq;
+  state.aiPending = true; state.aiSuggestion = null; state.aiForText = trimmed;
+  renderKeepingFocus();
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: trimmed,
+        today: fmtDate(startOfDay(new Date())),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    });
+    if (!res.ok) throw new Error("analyze " + res.status);
+    const data = await res.json();
+    aiCache.set(trimmed, data.suggestion || null);
+    if (seq === aiSeq) applyAiResult(trimmed, data.suggestion || null);
+  } catch (err) {
+    // Offline, not deployed, or the key is missing - degrade quietly.
+    if (seq === aiSeq) { state.aiPending = false; state.aiSuggestion = null; state.aiForText = ""; renderKeepingFocus(); }
+  }
+}
+
+function applyAiResult(trimmed, suggestion) {
+  const useful = suggestion && (suggestion.dueDate || suggestion.priority || suggestion.category);
+  state.aiPending = false;
+  state.aiForText = trimmed;
+  state.aiSuggestion = useful ? suggestion : null;
+  renderKeepingFocus();
+}
+
+function acceptAiSuggestion() {
+  const s = state.aiSuggestion;
+  if (!s) return;
+  if (s.dueDate) { state.draftDue = s.dueDate; state.draftDueAuto = false; state.draftSuggestDate = false; }
+  if (s.dueDate && s.dueTime) state.draftTime = s.dueTime;
+  if (s.priority) state.draftPriority = s.priority;
+  if (s.category && !state.draftCategoryText.trim()) state.draftCategoryText = s.category;
+  state.aiSuggestion = null;
+  renderKeepingFocus();
+}
+
+function dismissAiSuggestion() {
+  state.aiSuggestion = null;
+  renderKeepingFocus();
+}
+
+// render() rebuilds the add row, which drops the caret. Put it back.
+function renderKeepingFocus() {
+  const el = document.getElementById("draftInput");
+  const hadFocus = el && document.activeElement === el;
+  const pos = hadFocus ? el.selectionStart : null;
+  render();
+  if (!hadFocus) return;
+  const next = document.getElementById("draftInput");
+  if (!next) return;
+  next.focus();
+  const at = pos === null ? next.value.length : Math.min(pos, next.value.length);
+  next.setSelectionRange(at, at);
+}
+
+function renderAiBar() {
+  if (state.aiPending) {
+    return '<div class="ai-bar pending">' + esc(t("aiThinking")) + '</div>';
+  }
+  const s = state.aiSuggestion;
+  if (!s) return "";
+  const bits = [];
+  if (s.dueDate) {
+    const label = dueLabel(s.dueDate);
+    bits.push((label ? label.text : s.dueDate) + (s.dueTime ? ", " + formatTime(s.dueTime) : ""));
+  }
+  if (s.priority) bits.push(t(s.priority));
+  if (s.category) bits.push(s.category);
+  return '<div class="ai-bar">' +
+    '<div class="ai-bar-text">' +
+      '<span class="ai-lead">' + esc(t("aiSuggestLead")) + '</span> ' + esc(bits.join(" \u00b7 ")) +
+      (s.reason ? '<span class="ai-reason">' + esc(s.reason) + '</span>' : "") +
+    '</div>' +
+    '<div class="ai-bar-actions">' +
+      '<button type="button" class="ai-apply" onclick="acceptAiSuggestion()">' + esc(t("aiApply")) + '</button>' +
+      '<button type="button" class="ai-dismiss" onclick="dismissAiSuggestion()">' + esc(t("aiDismiss")) + '</button>' +
+    '</div>' +
+  '</div>';
+}
+
 function onDraftInput(text) {
   state.draftInputText = text;
+  scheduleAiAnalysis(text);
   // Live-preview an auto-detected date under the input, without overriding a manual calendar pick.
   if (state.calendarOpen) return;
   const trimmed = text.trim();
@@ -627,6 +758,7 @@ function renderSettings() {
     ["habits", t("featHabitsLabel"), t("featHabitsDesc")],
     ["pomodoro", t("featPomodoroLabel"), t("featPomodoroDesc")],
     ["reflection", t("featReflectLabel"), t("featReflectDesc")],
+    ["aiAssist", t("featAiLabel"), t("featAiDesc")],
   ];
   const rows = features.map(([key, label, desc]) =>
     '<label class="setting-row">' +
@@ -747,6 +879,7 @@ function renderListView() {
         dateBtnHtml +
         '<button class="btn-primary" onclick="addItem()">' + esc(t("addBtn")) + '</button>' +
       '</div>' +
+      renderAiBar() +
       '<div class="quick-row">' + priorityPickerHtml + categoryInputHtml + '</div>' +
     '</div>' +
     '<div style="margin-top:16px">' + emptyHtml + rowsHtml + '</div>' +
